@@ -339,6 +339,21 @@ class Container:
         """获取当前 LLM 客户端"""
         return self._instances["llm_client"]
 
+    def refresh_llm_client(self) -> LLMClient:
+        """从 config.yaml 重新读取配置并重建 LLM 客户端。
+
+        供 GUI 设置页保存 API key 后热更新，无需重启应用。
+        会一并重建依赖该客户端的 translation_provider。
+        """
+        self._config = _load_config()
+        llm_client = create_llm_client_from_config(self._config)
+        self._instances["llm_client"] = llm_client
+        self._instances["translation_provider"] = create_translation_provider_from_config(
+            self._config, llm_client
+        )
+        logger.info("DI container: LLM client refreshed from config.yaml")
+        return llm_client
+
 
 _container: Container | None = None
 
@@ -349,3 +364,11 @@ def get_container(db_path: str = "data/comic_translator.db") -> Container:
         _container = Container(db_path=db_path)
         logger.info("DI container initialized")
     return _container
+
+
+def refresh_llm_client() -> LLMClient | None:
+    """热刷新全局容器的 LLM 客户端；容器未初始化时返回 None。"""
+    global _container
+    if _container is None:
+        return None
+    return _container.refresh_llm_client()
