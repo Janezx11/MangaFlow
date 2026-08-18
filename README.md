@@ -1,0 +1,167 @@
+# Comic Translator · 漫画翻译系统
+
+自动化的漫画/漫画图片翻译系统：给定一组漫画图片，自动完成 **文字检测 → OCR 识别 → LLM 翻译 → 原文抹除 → 译文回填渲染** 的全流程，输出翻译后的图片。
+
+- **CLI**：`comic-translator`（typer）—— 初始化项目、批量翻译、断点续跑、项目列表
+- **Web GUI**：Gradio（本地 `127.0.0.1:7860`）—— 翻译页、设置页、调试页、实时日志
+
+> 当前定位：**英文漫画 → 中文** 等语言对，强调批量处理、角色一致性与术语一致性。
+
+---
+
+## ✨ 功能特性
+
+| 功能 | 说明 |
+|------|------|
+| 文字区域检测 | CTBD（RT-DETR-v2）检测 `text_bubble` / `text_free` / `bubble` 三类区域 |
+| 气泡检测 | YOLO11-seg 实例分割（含掩码/多边形），支持与文字区域融合 |
+| OCR 识别 | EasyOCR（默认英文），支持 GPU 加速；另有 PaddleOCR / MangaOCR 扩展点 |
+| LLM 翻译 | OpenAI 兼容 API（DeepSeek / 商汤 Sensenova）+ 本地 Ollama 双模式 |
+| 渲染回填 | OCR 掩码 + 背景修复（OpenCV / LaMa）+ 字体排版，译文画回图片 |
+| 翻译记忆 | 已有译文复用（精确匹配 + LIKE 模糊匹配 + 语义匹配） |
+| 角色一致性 | 跨页记住角色称呼与说话风格 |
+| 术语表 | 自定义术语词典（增删改查/分类），自动从译文提取专有名词 |
+| 批处理 | 整本漫画批量处理，断点续跑（resume） |
+| 跨气泡纠错 | 自动识别被 OCR 合并的相邻气泡并拆分二次识别 |
+
+---
+
+## 🚀 快速开始
+
+### 方式一：Web GUI（推荐）
+
+```bash
+python -m comic_translator.gui.app          # 默认 http://127.0.0.1:7860
+python -m comic_translator.gui.app --port 7860 --share
+```
+
+1. 打开浏览器访问 `http://127.0.0.1:7860`
+2. 切到 **⚙️ 设置** Tab，在 **API Key** 输入框粘贴你的 key，点 **保存配置**（立即生效，无需重启）
+   - 也可用环境变量 `SENSENOVA_API_KEY`（config.yaml 中 `llm.api.api_key: ${SENSENOVA_API_KEY}`）
+   - key 保存在本地 `config.yaml`（已加入 `.gitignore`，不会提交）
+3. 到 **📖 翻译** Tab，选择图片目录，点击翻译
+
+### 方式二：CLI
+
+```bash
+# 1. 初始化项目
+comic-translator init my_comic --input data/comics --title "My Comic"
+
+# 2. 批量翻译
+comic-translator run --project <project-id>
+
+# 3. 断点续跑 / 查看项目
+comic-translator resume <project-id>
+comic-translator list-projects
+```
+
+（等价于 `python -m comic_translator init ...` / `python -m comic_translator run --project ...`）
+
+---
+
+## 📦 安装
+
+> ⚠️ **注意**：`pyproject.toml` 的依赖声明目前**不完整**（`gradio`、`easyocr`、`onnxruntime-gpu`、`ultralytics`、`numpy`、`scipy` 等尚未写入），因此 `pip install -e .` 暂不能直接运行。当前实际运行环境为项目内的 Python 3.10 虚拟环境（`.venv310`，含 GPU 相关全部依赖）。依赖声明补全后此处会更新为标准安装方式。
+
+**当前推荐**：使用项目自带的 `.venv310` 环境
+
+```bash
+.\.venv310\Scripts\python.exe -m comic_translator.gui.app
+```
+
+**系统要求**：
+- Python 3.10+
+- 推荐 NVIDIA GPU（RTX 系列）＋ CUDA 12.4；无 GPU 时以 CPU 运行（较慢）
+
+---
+
+## ⚙️ 配置
+
+配置集中在 `config.yaml`（**已被 .gitignore 忽略，不会提交**），模板见 `config.example.yaml`。
+
+```yaml
+llm:
+  mode: api            # api / ollama
+  api:
+    api_key: ${SENSENOVA_API_KEY}   # 环境变量占位，或用 GUI 设置页直接填
+    base_url: https://token.sensenova.cn/v1
+    model: deepseek-v4-flash
+ocr:
+  lang: en
+translation:
+  source_lang: en
+  target_lang: zh
+  style: western_comic   # western_comic / manga / webtoon
+```
+
+- **API key**：推荐在 GUI 设置页填写（掩码显示、保存即生效）；也可以用环境变量 `${VAR}` 占位语法。
+- **模型路径**：`models/bubble/...`、`models/lama/big-lama`（见下节）。
+
+---
+
+## 🧠 模型
+
+模型文件**不随仓库分发**，需自行准备放入 `models/`：
+
+| 模型 | 路径 | 用途 |
+|------|------|------|
+| YOLO11-seg 气泡模型 | `models/bubble/yolo11n-seg-mixed-bubble.pt` | 气泡检测 |
+| CTBD 文本检测模型 | 通过 onnxruntime-gpu 加载 | 文字区域检测 |
+| LaMa 修复模型 | `models/lama/big-lama` | 背景修复（可选，默认 OpenCV） |
+| EasyOCR | 首次运行自动下载 | OCR |
+
+> TODO：提供 `download-models` 命令，从 HuggingFace 自动拉取（见 `PLAN.md`）。
+
+---
+
+## 📁 目录结构
+
+```
+src/comic_translator/
+├── providers/     # 可插拔能力层（文本检测/气泡/OCR/翻译/修复/渲染/QA）
+├── services/      # 业务服务层（OCR、翻译记忆、角色记忆、上下文、批处理、渲染…）
+├── storage/       # SQLAlchemy 持久化
+├── models/        # Pydantic 数据模型
+├── config/        # 配置
+├── prompts/       # LLM 提示词模板
+├── glossary/      # 术语表
+├── cache/         # 缓存
+├── utils/         # 依赖注入容器等
+└── gui/           # Gradio 界面
+```
+
+---
+
+## 🧪 开发与测试
+
+```bash
+.\.venv310\Scripts\python.exe -m pytest            # 单元测试
+.\.venv310\Scripts\python.exe -m pytest tests/...  # 指定目录
+```
+
+- 测试数量：75+ 通过（另有部分用例在受限制沙箱/临时目录权限下会报 `tmp_path` 权限错误，属环境限制非代码问题）。
+- 代码规范目标：`ruff` + `mypy`（严格模式）——详见 `pyproject.toml`。
+
+---
+
+## ⚠️ 已知限制
+
+- OCR 目前仅支持**英文**（日文/中文需扩展 OCR provider）
+- GPU 依赖通过「借用 torch 自带 CUDA DLL + `os.add_dll_directory`」加载，需与 onnxruntime-gpu 版本匹配；跨平台兼容性有限
+- 原生文件夹选择器（`SHBrowseForFolderW`）仅 **Windows** 可用
+- 部分模块为占位/未实现（`manga_ocr`、`gemma_qa`、`opencv_render` 等），详见 `OPTIMIZATION.md`
+
+---
+
+## 📄 许可
+
+本项目**尚未选定开源许可证**（LICENSE 文件待补）。在许可证确定前，请勿直接用于商业分发。详见 `PROJECT_STATUS.md` 的发布评估。
+
+---
+
+## 📚 相关文档
+
+- `PLAN.md` — 改进计划与路线图
+- `PROJECT_STATUS.md` — 项目现状与已知问题
+- `OPTIMIZATION.md` — 优化核查报告（P0/P1/P2 清单）
+- `docs/` — 架构、气泡、OCR 兼容性文档
