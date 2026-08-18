@@ -1,0 +1,68 @@
+# 漫画翻译管线配置
+# 复制此文件为 config.yaml 并填入你的配置（config.yaml 已 gitignore）
+
+# 翻译引擎
+llm:
+  # 可选: ollama / api
+  mode: ollama
+
+  # Ollama 配置（mode: ollama 时生效）
+  ollama:
+    model: qwen3.5:9b
+    base_url: http://localhost:11434
+    timeout: 600
+
+  # OpenAI 兼容 API 配置（mode: api 时生效）
+  api:
+    model: deepseek-chat
+    base_url: https://api.deepseek.com
+    # 通过环境变量设置，避免明文存储:
+    #   Linux/Mac: export DEEPSEEK_API_KEY="sk-xxx"
+    #   Windows:    set DEEPSEEK_API_KEY=sk-xxx
+    api_key: "${DEEPSEEK_API_KEY}"
+    timeout: 300
+
+# 气泡检测
+bubble:
+  conf_threshold: 0.25
+  iou_threshold: 0.45
+  model: models/bubble/yolo11n-seg-mixed-bubble.pt
+
+# OCR
+ocr:
+  lang: en
+
+# 翻译参数
+translation:
+  batch_size: 20     # 每批页数
+  source_lang: en
+  target_lang: zh
+  style: western_comic  # western_comic / manga / webtoon
+
+# 渲染
+render:
+  inpaint:
+    device: auto
+    lama_model_path: models/lama/big-lama
+    opencv_method: telea
+    opencv_radius: 5
+    provider: opencv
+  mask:
+    padding: 4
+    provider: ocr
+    refinement:
+      enabled: true
+    smooth_kernel: 5
+    text_ratio: 0.5
+  target_lang: zh
+  typography_font: comic
+  background_cleaning: false
+  fallback_to_source: false
+  use_quality_service: true
+
+# 项目
+project:
+  name: my_comic
+  db: data/output/project.db
+  cache_dir: data/cache
+  output_dir: data/output

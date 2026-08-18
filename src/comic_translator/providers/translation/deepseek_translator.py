@@ -1,0 +1,186 @@
+from __future__ import annotations
+
+import json
+from typing import TYPE_CHECKING
+
+from loguru import logger
+
+from comic_translator.clients.base import LLMClient
+from comic_translator.providers.translation.base import TranslationProvider
+
+if TYPE_CHECKING:
+    from comic_translator.models.translation_block import TranslationBlock
+    from comic_translator.models.context import TranslationContext
+
+
+class DeepSeekTranslator(TranslationProvider):
+    """DeepSeek 翻译引擎 —— 通过 LLMClient 调用
+
+    适用于 OpenAI 兼容 API（DeepSeek、SenseNova 等）。
+    将所有文本块打包到一次 LLM 调用中批量翻译，
+    返回 JSON 格式结果，按 id 映射到每个 TranslationBlock。
+    """
+
+    def __init__(self, client: LLMClient, model: str = "deepseek-chat") -> None:
+        self._client = client
+        self._model = model
+        self._system_prompt = (
+            "You are a professional comic translator. Your tasks:\n"
+            "1. Correct OCR errors in the source text (e.g. 'ANDPEw woodS' -> 'Andrew Woods')\n"
+            "2. Translate the corrected text to Simplified Chinese\n"
+            "3. Maintain consistency of character names, locations, and titles\n"
+            "4. Preserve speaking style and emotional tone\n"
+            "5. Keep text concise — match the speech bubble space\n\n"
+            "Return ONLY valid JSON. No explanations, no markdown fences."
+        )
+
+    async def translate(
+        self,
+        blocks: list[TranslationBlock],
+        context: TranslationContext,
+    ) -> list[TranslationBlock]:
+        if not blocks:
+            return blocks
+
+        # Build glossary context text
+        glossary_text = ""
+        if context.glossary:
+            lines = [f"  {g.source} → {g.target} ({g.category})" for g in context.glossary]
+            glossary_text = "Glossary:\n" + "\n".join(lines)
+
+        # Build character context text
+        character_text = ""
+        if context.metadata.get("characters"):
+            chars = context.metadata["characters"]
+            char_lines = []
+            for c in chars:
+                name = c.get("canonical_name", c.get("name", "?"))
+                style = c.get("speaking_style", "")
+                if style:
+                    char_lines.append(f"  {name} (speaking style: {style})")
+                else:
+                    char_lines.append(f"  {name}")
+            if char_lines:
+                character_text = "Characters:\n" + "\n".join(char_lines)
+
+        # Build the text blocks section
+        block_lines = [
+            f"[id={b.id}] {b.source_text}" for b in blocks
+        ]
+        blocks_text = "\n".join(block_lines)
+
+        # Build user prompt
+        user_prompt_parts = [
+            "Translate the following English comic text blocks to Simplified Chinese.",
+        ]
+        if glossary_text:
+            user_prompt_parts.append(f"\n{glossary_text}")
+        if character_text:
+            user_prompt_parts.append(f"\n{character_text}")
+        if context.translation_memory:
+            tm_lines = [f"  {tm.source_text} → {tm.translated_text}" for tm in context.translation_memory]
+            user_prompt_parts.append(f"\nTranslation Memory (use these as reference):\n" + "\n".join(tm_lines))
+        if context.page_summary:
+            user_prompt_parts.append(f"\nContext from previous pages:\n{context.page_summary}")
+        user_prompt_parts.append(
+            f"\nText blocks to translate:\n{blocks_text}\n\n"
+            f"Respond ONLY with a JSON array, no other text:\n"
+            f'[{{"id": "...", "corrected": "...", "translated": "..."}}, ...]'
+        )
+        user_prompt = "\n".join(user_prompt_parts)
+
+        logger.info(f"Translating {len(blocks)} blocks via {self._model}")
+
+        try:
+            response = await self._client.generate(
+                prompt=user_prompt,
+                system_prompt=self._system_prompt,
+            )
+            return self._parse_response(response, blocks)
+        except Exception as e:
+            logger.exception(f"Translation failed")
+            logger.error(f"  Message: {e}")
+            # Fallback: return blocks with source text as translated text
+            for block in blocks:
+                block.translated_text = block.source_text
+            return blocks
+
+    async def translate_single(
+        self,
+        block: TranslationBlock,
+        context: TranslationContext,
+    ) -> TranslationBlock:
+        result = await self.translate([block], context)
+        return result[0] if result else block
+
+    def _parse_response(
+        self, response: str, blocks: list[TranslationBlock]
+    ) -> list[TranslationBlock]:
+        """解析模型返回的 JSON 并映射到 blocks"""
+        response = response.strip()
+
+        # Remove markdown code fences if present
+        if response.startswith("```"):
+            response = response.split("\n", 1)[-1]
+            response = response.rsplit("```", 1)[0]
+            response = response.strip()
+
+        # Try to extract JSON array
+        start = response.find("[")
+        end = response.rfind("]") + 1
+        if start >= 0 and end > start:
+            response = response[start:end]
+
+        try:
+            parsed = json.loads(response)
+        except json.JSONDecodeError as e:
+            logger.warning(f"JSON parse failed at char {e.pos}: {response[max(0,e.pos-20):e.pos+20]!r}")
+            logger.warning(f"Full response preview: {response[:500]!r}")
+            return self._fallback_parse(response, blocks)
+
+        logger.debug(f"Model returned {len(parsed)} items")
+
+        # Map parsed results to blocks
+        id_map = {}
+        for item in parsed:
+            item_id = str(item.get("id", ""))
+            translated = item.get("translated", "") or item.get("translated_text", "")
+            corrected = item.get("corrected", "")
+            if translated:
+                id_map[item_id] = translated
+            elif corrected:
+                # If no translation but has corrected text, use corrected as fallback
+                id_map[item_id] = corrected
+
+        for block in blocks:
+            translated = id_map.get(block.id) or id_map.get(block.ocr_block_id, "")
+            if not translated:
+                logger.warning(f"Block {block.id}: no translation found in model response")
+            block.translated_text = translated if translated else block.source_text
+
+        # Positional fallback for any blocks still empty
+        for i, block in enumerate(blocks):
+            if not block.translated_text:
+                if i < len(parsed):
+                    logger.warning(f"Block {block.id}: positional fallback to item {i}")
+                    block.translated_text = (
+                        parsed[i].get("translated", "")
+                        or parsed[i].get("translated_text", "")
+                        or block.source_text
+                    )
+                else:
+                    block.translated_text = block.source_text
+
+        return blocks
+
+    def _fallback_parse(
+        self, response: str, blocks: list[TranslationBlock]
+    ) -> list[TranslationBlock]:
+        """JSON 解析失败时的回退方案：按行匹配"""
+        lines = [l.strip() for l in response.split("\n") if l.strip()]
+        for i, block in enumerate(blocks):
+            if i < len(lines):
+                block.translated_text = lines[i]
+            else:
+                block.translated_text = block.source_text
+        return blocks

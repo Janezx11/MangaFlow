@@ -1,0 +1,45 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+.pytest_cache/
+.pytest_tmp/
+
+# Data (user content, caches, agent artifacts)
+data/cache/
+data/comics/
+data/logs/
+data/output/
+data/tmp/
+data/*.db
+dataset/
+datasets/
+
+# Models (large weights, download separately)
+models/
+
+# Ultralytics training runs
+runs/
+
+# Local config (contains API keys)
+config.yaml
+
+# Environments (huge local venvs)
+.venv*/
+.env
+.env.local
+
+# Harness / agent tooling
+.claude/
+.tools/
+/~/
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
