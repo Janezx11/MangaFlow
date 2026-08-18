@@ -19,9 +19,22 @@ def create_settings_page(config_service: GuiConfigService):
         with gr.Row():
             with gr.Column():
                 gr.Markdown("### 大语言模型")
-                llm_mode = gr.Textbox(label="运行模式", value=cfg["llm_mode"], interactive=False)
-                llm_model = gr.Textbox(label="模型", value=cfg["llm_model"], interactive=False)
-                llm_url = gr.Textbox(label="API 地址", value=cfg["llm_base_url"], interactive=False)
+                llm_mode = gr.Dropdown(
+                    label="运行模式",
+                    choices=[("API（OpenAI 兼容）", "api"), ("Ollama 本地", "ollama")],
+                    value=cfg["llm_mode"],
+                )
+                with gr.Row():
+                    llm_model = gr.Dropdown(
+                        label="模型",
+                        choices=[cfg["llm_model"]] if cfg["llm_model"] else [],
+                        value=cfg["llm_model"] or None,
+                        allow_custom_value=True,
+                        scale=3,
+                    )
+                    fetch_btn = gr.Button("获取可用模型", size="sm", scale=1)
+                fetch_status_md = gr.Markdown("")
+                llm_url = gr.Textbox(label="API 地址", value=cfg["llm_base_url"])
                 api_key = gr.Textbox(
                     label="API Key",
                     type="password",
@@ -65,7 +78,21 @@ def create_settings_page(config_service: GuiConfigService):
         gr.Markdown("### GPU 状态")
         gpu_md = gr.Markdown(_get_gpu_status())
 
-    def save_config(bubble_model, bubble_conf, target_lang, style, output_dir, api_key):
+    def save_config(
+        bubble_model, bubble_conf, target_lang, style, output_dir,
+        llm_mode, llm_model, llm_url, api_key,
+    ):
+        # 记录 LLM 字段是否变化（决定是否需要热更新客户端）
+        old_llm = (
+            config_service.get("llm.mode"),
+            config_service.get("llm.api.model"),
+            config_service.get("llm.api.base_url"),
+        )
+        llm_changed = (llm_mode, llm_model, llm_url) != old_llm
+
+        config_service.set("llm.mode", llm_mode)
+        config_service.set("llm.api.model", llm_model)
+        config_service.set("llm.api.base_url", llm_url)
         config_service.set("bubble.model", bubble_model)
         config_service.set("bubble.conf_threshold", bubble_conf)
         config_service.set("translation.target_lang", target_lang)
@@ -78,7 +105,7 @@ def create_settings_page(config_service: GuiConfigService):
         config_service.save()
 
         notes = []
-        if key_changed:
+        if key_changed or llm_changed:
             note = _refresh_llm_client()
             if note:
                 notes.append(note)
@@ -97,6 +124,7 @@ def create_settings_page(config_service: GuiConfigService):
         cfg = config_service.summary()
         new_state = config_service.get_api_key_state()
         return (
+            cfg["llm_mode"], cfg["llm_model"], cfg["llm_base_url"],
             cfg["bubble_model"], cfg["bubble_conf"],
             cfg["target_lang"], cfg["style"], cfg["output_dir"],
             "配置已重新加载",
@@ -104,17 +132,54 @@ def create_settings_page(config_service: GuiConfigService):
             "",
         )
 
+    def fetch_models(api_key_typed, llm_url, llm_mode, llm_model):
+        """根据 key + 地址自动拉取可用模型，填充下拉框。"""
+        try:
+            if llm_mode == "ollama":
+                base = config_service.get("llm.ollama.base_url", "http://localhost:11434")
+                models = config_service.fetch_ollama_models(base)
+                if not models:
+                    return gr.update(), "⚠️ 本机没有已安装的 Ollama 模型"
+                new_value = llm_model if llm_model in models else models[0]
+                return (
+                    gr.update(choices=models, value=new_value),
+                    f"✅ 获取到 {len(models)} 个本地模型",
+                )
+            # API 模式：优先用刚填的 key，否则用配置里已生效的 key
+            key = (api_key_typed or "").strip() or config_service.effective_api_key()
+            if not key:
+                return gr.update(), "❌ 请先填写 API Key（或已在 config.yaml 中配置）"
+            models = config_service.fetch_models(llm_url, key)
+            if not models:
+                return gr.update(), "⚠️ 接口返回了空模型列表"
+            new_value = llm_model if llm_model in models else models[0]
+            return (
+                gr.update(choices=models, value=new_value),
+                f"✅ 获取到 {len(models)} 个可用模型",
+            )
+        except Exception as e:  # noqa: BLE001
+            return gr.update(), f"❌ 获取模型失败：{e}"
+
     save_btn.click(
         fn=save_config,
-        inputs=[bubble_model, bubble_conf, target_lang, style, output_dir, api_key],
+        inputs=[
+            bubble_model, bubble_conf, target_lang, style, output_dir,
+            llm_mode, llm_model, llm_url, api_key,
+        ],
         outputs=[status_md, api_key_status, api_key],
     )
     reload_btn.click(
         fn=reload_config,
         outputs=[
+            llm_mode, llm_model, llm_url,
             bubble_model, bubble_conf, target_lang, style, output_dir,
             status_md, api_key_status, api_key,
         ],
+    )
+    fetch_btn.click(
+        fn=fetch_models,
+        inputs=[api_key, llm_url, llm_mode, llm_model],
+        outputs=[llm_model, fetch_status_md],
     )
 
 

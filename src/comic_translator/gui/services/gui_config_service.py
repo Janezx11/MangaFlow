@@ -89,6 +89,43 @@ class GuiConfigService:
         if value:
             self.set("llm.api.api_key", value)
 
+    def effective_api_key(self) -> str:
+        """返回实际生效的 API key 明文（解析 ${VAR} 环境变量后）。"""
+        raw = self.get("llm.api.api_key", "")
+        if not raw:
+            return ""
+        raw = str(raw).strip()
+        m = re.match(r"^\$\{(\w+)\}$", raw)
+        if m:
+            return os.environ.get(m.group(1), "")
+        return raw
+
+    def fetch_models(self, base_url: str, api_key: str, timeout: int = 30) -> list[str]:
+        """调用 OpenAI 兼容 /models 端点，获取可用模型列表（如 DSH 自动拉取）。
+
+        返回按字母序去重后的模型 ID 列表；失败时抛 httpx 异常由调用方处理。
+        """
+        import httpx
+        url = base_url.rstrip("/")
+        if not url.endswith("/v1"):
+            url += "/v1"
+        resp = httpx.get(
+            f"{url}/models",
+            headers={"Authorization": f"Bearer {api_key}"},
+            timeout=timeout,
+        )
+        resp.raise_for_status()
+        data = resp.json().get("data", [])
+        return sorted({m["id"] for m in data if isinstance(m, dict) and m.get("id")})
+
+    def fetch_ollama_models(self, base_url: str, timeout: int = 10) -> list[str]:
+        """调用 Ollama /api/tags 获取本地已安装模型列表。"""
+        import httpx
+        url = base_url.rstrip("/")
+        resp = httpx.get(f"{url}/api/tags", timeout=timeout)
+        resp.raise_for_status()
+        return sorted(m["name"] for m in resp.json().get("models", []) if m.get("name"))
+
     def save(self):
         self._path.write_text(
             yaml.dump(self._config, default_flow_style=False, allow_unicode=True),
