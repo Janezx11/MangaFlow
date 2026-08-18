@@ -273,8 +273,11 @@ class RenderService:
         # 4. Render QA
         qa = self._qa.check(dialogue_blocks, w, h) if run_qa else None
 
-        # 5. Save rendered image
-        out_path = out_dir / f"page_{page:04d}_rendered.png"
+        # 5. Save rendered image（优先继承原文件名；无 source_path 时退回页码命名）
+        if source_path:
+            out_path = out_dir / f"{Path(source_path).stem}_translated.png"
+        else:
+            out_path = out_dir / f"page_{page:04d}_rendered.png"
         draw_img.save(str(out_path))
 
         # 6. Debug JSON (with typography scores)

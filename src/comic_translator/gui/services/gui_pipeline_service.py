@@ -719,11 +719,15 @@ class GuiPipelineService:
             """向事件队列发送进度事件（非阻塞，队列无限大）"""
             q_events.put_nowait((page, stage, message))
 
+        # 记录 页码 → 源文件路径，供渲染时继承原文件名
+        page_sources: dict[int, str] = {}
+
         async def producer():
             """Stage 1: detect + OCR → q_ready"""
             try:
                 for i, img_path in enumerate(images):
                     page = i + 1
+                    page_sources[page] = str(img_path)
                     try:
                         _emit("detection", f"Page {page}/{total}: detecting...", page)
                         t0 = time.time()
@@ -953,6 +957,7 @@ class GuiPipelineService:
                         render_result = self.render_service.render_page(
                             cur_img, cur_page, cur_result.dialogues,
                             output_dir=output_dir,
+                            source_path=page_sources.get(cur_page, ""),
                             render_options=page_render_options,
                         )
                         cur_result.rendered_path = render_result.output_path
@@ -1513,7 +1518,9 @@ class GuiPipelineService:
                     d.translated_text = single
                     d.translation_status = "unchanged" if single == source else "success"
                 else:
-                    d.translated_text = source
+                    # 失败：不要塞原文当译文，让渲染器按 fallback_to_source 决定
+                    # （显示 TRANSLATION FAILED 或回退原文），避免"看似已翻译实为英文"
+                    d.translated_text = ""
                     d.translation_status = "failed"
                 await asyncio.sleep(0.2)
 
@@ -1638,7 +1645,8 @@ class GuiPipelineService:
                     d.translated_text = single
                     d.translation_status = "unchanged" if single == source else "success"
                 else:
-                    d.translated_text = source
+                    # 失败：不塞原文当译文（见 LLMClient 路径同款注释）
+                    d.translated_text = ""
                     d.translation_status = "failed"
                 await asyncio.sleep(0.2)
 
@@ -1754,12 +1762,13 @@ class GuiPipelineService:
                     d.translation_status = "unchanged" if single == source else "success"
                     retried += 1
                 else:
-                    # 最后保底：用原文
-                    d.translated_text = source
+                    # 最后保底：不塞原文当译文，交由渲染器按 fallback_to_source
+                    # 显示 TRANSLATION FAILED 或回退原文
+                    d.translated_text = ""
                     d.translation_status = "failed"
             except Exception as e:
                 logger.error(f"Retry failed for block '{source[:30]}...': {e}")
-                d.translated_text = source
+                d.translated_text = ""
                 d.translation_status = "failed"
             await asyncio.sleep(0.2)
 
