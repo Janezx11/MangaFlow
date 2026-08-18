@@ -61,13 +61,31 @@ comic-translator list-projects
 
 ## 📦 安装
 
-> ⚠️ **注意**：`pyproject.toml` 的依赖声明目前**不完整**（`gradio`、`easyocr`、`onnxruntime-gpu`、`ultralytics`、`numpy`、`scipy` 等尚未写入），因此 `pip install -e .` 暂不能直接运行。当前实际运行环境为项目内的 Python 3.10 虚拟环境（`.venv310`，含 GPU 相关全部依赖）。依赖声明补全后此处会更新为标准安装方式。
-
-**当前推荐**：使用项目自带的 `.venv310` 环境
+### 完整安装（推荐，含 GUI / OCR / 检测 / GPU / 渲染）
 
 ```bash
-.\.venv310\Scripts\python.exe -m comic_translator.gui.app
+pip install -e ".[all]"
 ```
+
+### 按需安装（最小 → 最大）
+
+```bash
+pip install -e .                        # 核心：CLI + 服务层 + 存储
+pip install -e ".[gui]"                 # + Web GUI（Comic AI Studio）
+pip install -e ".[ocr]"                 # + EasyOCR 英文识别（GPU 加速可选）
+pip install -e ".[gui,ocr]"             # GUI + 英文 OCR（最小可用组合）
+pip install -e ".[gui,ocr,gpu,yolo,inpaint]"   # 完整翻译管线（推荐）
+pip install -e ".[test]"                # + 开发/测试工具（pytest/ruff/mypy）
+```
+
+可选 extras：`gui`、`ocr`、`paddle`、`manga-ocr`、`yolo`、`gpu`、`inpaint`、`vision`、`test`、`all`。
+
+> **GPU 注意**：`torch` / `onnxruntime-gpu` 的 CUDA 构建需从对应索引安装（本项目实际运行于 torch 2.6.0+cu124 / CUDA 12.4 / RTX 4060）。
+
+> **本地开发**：项目自带 `.venv310`（Python 3.10 + 全部 GPU 依赖），可直接使用
+> ```bash
+> .\.venv310\Scripts\python.exe -m comic_translator.gui.app
+> ```
 
 **系统要求**：
 - Python 3.10+
