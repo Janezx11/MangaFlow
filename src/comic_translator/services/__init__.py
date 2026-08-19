@@ -30,7 +30,6 @@ from comic_translator.services.entity_service import EntityService
 # Render Pipeline
 from comic_translator.services.inpaint_service import InpaintService
 from comic_translator.services.background_cleaner import BackgroundCleaner
-from comic_translator.services.typography_service import TypographyService
 from comic_translator.services.text_layout_service import TextLayoutService
 from comic_translator.services.text_normalizer import TextNormalizer
 from comic_translator.services.render_qa_service import RenderQAService

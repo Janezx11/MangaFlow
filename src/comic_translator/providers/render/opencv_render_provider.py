@@ -13,7 +13,11 @@ if TYPE_CHECKING:
 
 
 class OpenCVRenderProvider(RenderProvider):
-    """OpenCV 渲染引擎 —— 将翻译文本回填到图片"""
+    """⚠️ 占位实现（未完成）——`render()` 会抛 NotImplementedError。
+
+    实际渲染由 `services/render_service.py` 的 TypographyServiceV2 排版引擎
+    承担，本 Provider 为早期接口占位，无调用方依赖其渲染结果。
+    """
 
     def __init__(
         self,

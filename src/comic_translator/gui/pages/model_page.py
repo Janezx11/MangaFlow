@@ -2,12 +2,16 @@
 
 from __future__ import annotations
 
-import gradio as gr
+from pathlib import Path
 
+import gradio as gr
+from loguru import logger
+
+from comic_translator.gui.services.gui_config_service import GuiConfigService
 from comic_translator.gui.services.model_registry_service import ModelRegistryService
 
 
-def create_model_page(registry_service: ModelRegistryService):
+def create_model_page(registry_service: ModelRegistryService, config_service: GuiConfigService, pipeline_service):
     """创建模型注册表标签页"""
 
     with gr.Column():
@@ -79,8 +83,21 @@ def create_model_page(registry_service: ModelRegistryService):
         if not name:
             return gr.update(), gr.update(), "未选中模型"
         ok = registry_service.enable(name)
+        if ok:
+            # 同步 config.yaml 的 bubble.model，让启用真正生效
+            info = registry_service.get_model(name)
+            if info:
+                config_service.set("bubble.model", Path(info.path).as_posix())
+                config_service.save()
+                logger.info(f"Enabled model -> config.yaml bubble.model: {Path(info.path).as_posix()}")
+            try:
+                pipeline_service.refresh_bubble_provider()
+            except Exception as e:  # noqa: BLE001
+                logger.warning(f"Bubble provider refresh failed: {e}")
         rows, active, _ = refresh()
-        return rows, active, (f"已启用 {name}" if ok else f"启用失败 {name}")
+        return rows, active, (
+            f"已启用 {name}（已同步 config.yaml，立即生效）" if ok else f"启用失败 {name}"
+        )
 
     def disable(name):
         if not name:

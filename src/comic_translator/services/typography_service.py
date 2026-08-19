@@ -1,4 +1,8 @@
-"""Typography Engine —— 字体配置、文本绘制（Debug V3）"""
+"""DEPRECATED（已被 typography_service_v2.py 取代）——仅 demo/examples 脚本引用。
+
+字体配置、文本绘制（Debug V3，原模块 docstring：Typography Engine）。
+实际渲染管线使用 TypographyServiceV2。
+"""
 
 from __future__ import annotations
 

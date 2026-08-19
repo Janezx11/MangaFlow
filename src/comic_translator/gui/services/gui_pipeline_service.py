@@ -98,6 +98,33 @@ def _get_global_counts() -> tuple[int, int]:
         return _GLOBAL_RATE_LIMITED, _GLOBAL_TRANS_RETRIES
 
 
+def _read_bubble_cfg() -> dict:
+    """从 config.yaml 读取气泡检测配置（模型路径/置信度/IoU），缺失时回退默认。
+
+    保证 GUI 管线的气泡模型路径来自配置（模型库「启用」同步写回 config.yaml
+    后即被这里读取），不再硬编码。
+    """
+    import yaml
+    from pathlib import Path
+
+    default = {
+        "model": "models/bubble/yolo11n-seg-mixed-bubble.pt",
+        "conf_threshold": 0.35,
+        "iou_threshold": 0.45,
+    }
+    try:
+        cfg_path = Path("config.yaml")
+        if cfg_path.exists():
+            cfg = yaml.safe_load(cfg_path.read_text(encoding="utf-8")) or {}
+            bubble = cfg.get("bubble", {}) or {}
+            merged = dict(default)
+            merged.update({k: v for k, v in bubble.items() if k in default})
+            return merged
+    except Exception as e:  # noqa: BLE001
+        logger.debug(f"Failed to read bubble config: {e}")
+    return default
+
+
 
 @dataclass
 class PageResult:
@@ -265,8 +292,11 @@ class GuiPipelineService:
         self.text_detector = CTBDTextDetectorProvider(confidence=conf)
 
         self._log_init("加载气泡检测模型 YOLO11...")
+        bubble_cfg = _read_bubble_cfg()
         self.bubble_provider = YOLO11BubbleProvider(
-            model_path="models/bubble/yolo11n-seg-mixed-bubble.pt",
+            model_path=bubble_cfg["model"],
+            conf_threshold=bubble_cfg["conf_threshold"],
+            iou_threshold=bubble_cfg["iou_threshold"],
         )
 
         self._log_init("加载 OCR 引擎 EasyOCR...")
@@ -341,6 +371,24 @@ class GuiPipelineService:
 
         self._initialized = True
         self._log_init("所有模型加载完成")
+
+    def refresh_bubble_provider(self) -> None:
+        """按 config.yaml 重建气泡检测 provider（模型库「启用」后立即生效）。
+
+        YOLO 模型为懒加载：只重建 provider 对象（开销小），
+        下次 detect 时才会真正载入新权重。
+        """
+        if not getattr(self, "_initialized", False):
+            return
+        from comic_translator.providers.bubble.yolo_bubble_provider import YOLO11BubbleProvider
+
+        bubble_cfg = _read_bubble_cfg()
+        self.bubble_provider = YOLO11BubbleProvider(
+            model_path=bubble_cfg["model"],
+            conf_threshold=bubble_cfg["conf_threshold"],
+            iou_threshold=bubble_cfg["iou_threshold"],
+        )
+        logger.info(f"Bubble provider refreshed: {bubble_cfg['model']}")
 
     def warmup(self, conf: float = 0.3):
         """在后台线程中预加载模型，避免首次运行时长时间无反馈"""

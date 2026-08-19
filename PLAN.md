@@ -60,26 +60,16 @@
 ## 阶段二：功能优化（待开始）
 
 ### 2.1 术语表 + 角色记忆接入 GUI 翻译
-- 📋 **优先级: P0 | 工作量: 2 小时 | 价值: 翻译质量明显提升**
+- ✅ **已完成** | 优先级: P0 | 工作量: 2 小时 | 价值: 翻译质量明显提升
 
-**现状**: `GlossaryService`、`CharacterMemoryService`、`TranslationMemoryService` 都有完整实现，但 GUI 的 `_translate_dialogues` 没有使用它们，翻译就是裸 LLM 调用。
-
-**改法**: 在 `_translate_via_llm_client` 和 `_translate_via_http` 中，从 DI 容器获取 glossary + character memory + TM，拼接到 system prompt 或 user prompt 里。
-
-**代码位置**:
-- `gui_pipeline_service.py` 的 `_translate_via_llm_client()` 和 `_translate_via_http()`
-- 参考 `translation_service.py` 的 `translate_page()` 方法怎么用 `ContextAssembler`
+**现状（已完成）**: `_translate_dialogues` 通过 `_build_translation_context()` 从 DI 容器获取 glossary + character identity，拼入 system prompt；翻译后 `_save_auto_glossary()` 自动回写术语表。
+- 代码位置: `gui_pipeline_service.py` 的 `_build_translation_context()` / `_save_auto_glossary()` / `_translate_dialogues()`
 
 ### 2.2 OCR 后处理接入 GUI
-- 📋 **优先级: P0 | 工作量: 1 小时 | 价值: OCR 准确率提升**
+- ✅ **已完成** | 优先级: P0 | 工作量: 1 小时 | 价值: OCR 准确率提升
 
-**现状**: `OCRPostprocessService`（5 级修复：特殊字符清理、拼写纠正、上下文修复、实体识别、合并碎片）在 `BatchOCRService` 中被调用，但 GUI 的 OCR 流程没有用。
-
-**改法**: 在 GUI 的 OCR 步骤后（`text_region_service.extract_text()` 之后）调用 `ocr_postprocess_service.process_page()`。
-
-**代码位置**:
-- `gui_pipeline_service.py` 的 `_run_async()` 中 OCR 步骤之后
-- 约 300 行附近
+**现状（已完成）**: GUI 的 OCR 步骤后调用 `ocr_postprocess_service.process_page()`（`_run_async` 中 OCR 之后）。
+- 代码位置: `gui_pipeline_service.py` 的 `self.ocr_postprocess`（init）+ `_run_async` OCR 步骤后
 
 ### 2.3 翻译错误反馈
 - 📋 **优先级: P1 | 工作量: 半天 | 价值: 用户体验提升**

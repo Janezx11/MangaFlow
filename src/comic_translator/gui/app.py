@@ -116,7 +116,7 @@ def create_app() -> gr.Blocks:
                     with gr.Tab("训练中心"):
                         create_training_page(training_service, dataset_service, registry_service)
                     with gr.Tab("模型库"):
-                        create_model_page(registry_service)
+                        create_model_page(registry_service, config_service, pipeline_service)
                     with gr.Tab("评估面板"):
                         create_benchmark_page(benchmark_service)
 

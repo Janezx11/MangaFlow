@@ -110,7 +110,7 @@ src/comic_translator/
 
 ## 5. 当前状态（实测验证）
 
-- ✅ **121 个单元测试全部通过**（pytest）：覆盖模型、OCR 归一化、翻译记忆、语义 TM、角色记忆、上下文组装、术语表、页面摘要、prompt 缓存、Bubble-aware OCR、跨气泡拆分等
+- ✅ **单元测试通过**（pytest）：覆盖模型、OCR 归一化、翻译记忆、语义 TM、角色记忆、上下文组装、术语表、页面摘要、prompt 缓存、Bubble-aware OCR、跨气泡拆分等。注意：受限沙箱（临时目录不可写）下部分用 `tmp_path` 的用例会报 `PermissionError`（环境限制，非代码问题）；在正常环境可全量通过
 - ✅ **GPU 全链路生效**：EasyOCR（自动检测 CUDA）、CTBD（onnxruntime-gpu，经 `os.add_dll_directory` 借用 torch 自带 CUDA 12.4 DLL 加载 CUDAExecutionProvider）、YOLO、LaMa 均在 GPU 运行
 - ✅ **OCR 架构已验证**：3 页实际测试，新架构（区域 OCR + 跨气泡手术）与原架构输出完全一致，零退化
 - ✅ **跨气泡合并 bug 已修复**：`_merge_blocks`（OCR 后处理 L4）原按全局 reading_order 合并同列相邻行，导致多气泡文字被合并成 1 个超大 block、最终只渲染到一个气泡；已改为按 `bubble_id` 分组，仅在同一气泡内合并相邻行

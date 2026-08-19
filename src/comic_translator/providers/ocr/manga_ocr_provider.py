@@ -12,7 +12,11 @@ if TYPE_CHECKING:
 
 
 class MangaOCRProvider(OCRProvider):
-    """MangaOCR 引擎 —— 日语漫画 OCR"""
+    """⚠️ 占位实现（未完成）——日语漫画 OCR 尚未接入。
+
+    配置 `ocr.provider=manga_ocr` 时调用会抛 NotImplementedError；
+    接入需安装 `manga-ocr` 并在 `detect_text()` 中调用其推理。
+    """
 
     async def detect_text(self, image: Image.Image) -> list[OCRBlock]:
         raise NotImplementedError

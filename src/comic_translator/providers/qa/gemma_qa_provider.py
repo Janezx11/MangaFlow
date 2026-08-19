@@ -13,7 +13,12 @@ if TYPE_CHECKING:
 
 
 class GemmaQAProvider(QAProvider):
-    """Gemma QA 检查引擎 —— 通过 LLMClient 调用"""
+    """⚠️ 占位实现（未完成）——`check()` 会抛 NotImplementedError。
+
+    当前质检走 render_qa_service / typography_qa 的规则校验，本 Provider
+    为 DI 容器预留的 LLM 质检接口；需要时在 `check()` 中接入
+    `self._client.generate()` 即可。
+    """
 
     def __init__(self, client: LLMClient, model: str = "gemma4:e4b") -> None:
         self._client = client
