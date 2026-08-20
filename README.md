@@ -183,4 +183,5 @@ MIT License（见 `LICENSE`）。**注意**：本仓库分发的代码为 MIT，
 - `PLAN.md` — 改进计划与路线图
 - `PROJECT_STATUS.md` — 项目现状与已知问题
 - `OPTIMIZATION.md` — 优化核查报告（P0/P1/P2 清单）
+- `RELEASE_CHECKLIST.md` — v0.1.0 上架前核对清单（clone 自检/实测步骤）
 - `docs/` — 架构、气泡、OCR 兼容性文档
