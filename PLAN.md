@@ -180,6 +180,17 @@
 
 **改法**: 让 LLM 直接输出排版参数（字号、行坐标、对齐方式），替代 `FontSizeSolver` + `BalancedLineBreaker` + `ShapeLayoutSolver`。
 
+### 3.9 附带微型 demo 数据集（让 ML 模型开发功能开箱可见）
+- 💡 **优先级: P3（上架前可选） | 工作量: 1~2 小时 | 价值: reviewer 能实际点通标注/训练**
+
+**背景**: 真实标注数据在 `dataset/`（mixed_bubble 等，已被 gitignore 不入仓库）；
+clone 后 GUI 的「ML 模型开发」（数据集/标注/训练中心）会显示无数据集，容易被误判为功能缺失/坏掉。
+
+**改法**:
+- 在 `examples/` 放一个微型 demo 数据集（5~10 张图 + YOLO 标签，几 MB，需确认图片许可）
+- 提供 `python scripts/import_demo_dataset.py` 一键导入到 `dataset/demo`
+- README 快速开始可选提一句「想体验训练/标注？先 import demo 数据集」
+
 ---
 
 ## 四、实施路线图

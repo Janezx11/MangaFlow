@@ -48,6 +48,7 @@
 - **无 CI、无端到端集成测试**（PLAN §2.5 未做）。建议 GitHub Actions：ruff + mypy + pytest。
 - **硬编码相对路径**（`data/comics`、`models/bubble/...`）对工作目录敏感 → 建议从 `config.yaml` 统一读取（PLAN §2.4）。
 - **跨平台脆弱**：GPU 用"借 torch 的 CUDA DLL + `os.add_dll_directory`" hack；文件夹选择器仅 Windows（`native_picker.py`）——文档已记录，属已知取舍。
+- **ML 模型开发功能对 reviewer 不可见**：`dataset/`（真实标注数据）被 gitignore，clone 后标注/训练显示无数据集 → 建议附带**微型 demo 数据集 + 导入脚本**（见 PLAN §3.9），让功能可实际点通。
 
 ---
 
