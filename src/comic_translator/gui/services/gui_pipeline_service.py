@@ -1407,6 +1407,25 @@ class GuiPipelineService:
                 remaining_index_map.append(index_map[j])
 
         if remaining_texts:
+            # ---- 提速：待翻译文本去重（相同原文只翻一次，映射回所有同文气泡） ----
+            # 同页/跨页常见的重复文本（"HAHA"、"!!!"、重复台词）只发一次 LLM，
+            # 既省请求数（rps 受限时收益大），又保证同文翻译一致。
+            unique_texts: list[str] = []
+            unique_to_dups: dict[str, list[int]] = {}
+            for pos, txt in enumerate(remaining_texts):
+                if txt not in unique_to_dups:
+                    unique_to_dups[txt] = [pos]
+                    unique_texts.append(txt)
+                else:
+                    unique_to_dups[txt].append(pos)
+            deduped = len(remaining_texts) - len(unique_texts)
+            unique_index_map = [remaining_index_map[unique_to_dups[t][0]] for t in unique_texts]
+            if deduped:
+                logger.info(
+                    f"Translation dedup: {deduped} duplicate text(s) skipped "
+                    f"(unique {len(unique_texts)}/{len(remaining_texts)})"
+                )
+
             # 构建翻译上下文（术语表 + 角色身份，按项目隔离）
             context_str = GuiPipelineService._build_translation_context(project_id=project_id)
 
@@ -1422,14 +1441,25 @@ class GuiPipelineService:
 
             if llm_client is not None:
                 await GuiPipelineService._translate_via_llm_client(
-                    dialogues, remaining_texts, remaining_index_map,
+                    dialogues, unique_texts, unique_index_map,
                     target_name, llm_client, context_str, project_id,
                 )
             else:
                 await GuiPipelineService._translate_via_http(
-                    dialogues, remaining_texts, remaining_index_map,
+                    dialogues, unique_texts, unique_index_map,
                     target_name, context_str, project_id,
                 )
+
+            # 把去重后的译文/状态复制回所有同文气泡
+            if deduped:
+                for u, positions in enumerate(unique_to_dups.values()):
+                    if len(positions) < 2:
+                        continue
+                    first_d = dialogues[unique_index_map[u]]
+                    for pos in positions[1:]:
+                        d = dialogues[remaining_index_map[pos]]
+                        d.translated_text = first_d.translated_text
+                        d.translation_status = first_d.translation_status
 
         # 回写：翻译记忆 + 页面翻译缓存（供下次复用）
         if semantic_tm is not None:
