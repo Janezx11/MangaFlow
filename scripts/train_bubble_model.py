@@ -92,8 +92,8 @@ def main():
     logger.info(f"  mAP50:     {val_results.box.map50:.4f}")
     logger.info(f"  mAP50-95:  {val_results.box.map:.4f}")
 
-    # 导出模型
-    output_path = Path(f"models/bubble/{args.model.replace('.pt', '')}-bubble.pt")
+    # 导出模型（用 basename + 实验名，避免 model 带路径时产生嵌套路径）
+    output_path = Path(f"models/bubble/{Path(args.model).stem}-{args.name}.pt")
     output_path.parent.mkdir(parents=True, exist_ok=True)
 
     best_pt = Path(f"runs/segment/{args.name}/weights/best.pt")

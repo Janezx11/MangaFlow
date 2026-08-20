@@ -98,7 +98,8 @@ class TrainingService:
                 model=base_model,
                 started_at=time.time(),
                 total_epochs=epochs,
-                output_path=f"models/bubble/{Path(base_model).stem}-bubble.pt",
+                # 与 scripts/train_bubble_model.py 的导出路径保持一致
+                output_path=f"models/bubble/{Path(base_model).stem}-{name}.pt",
             )
             self._log_buffer = [f"$ {' '.join(cmd)}"]
 
