@@ -1,4 +1,4 @@
-# 漫画翻译系统（comic-translator）项目现状报告
+# MangaFlow（comic-translator）项目现状报告
 
 > 面向 AI/LLM 读者的完整介绍。读完本文档即可了解项目全貌、技术架构、当前状态与已知问题，**无需阅读任何源代码**。
 >

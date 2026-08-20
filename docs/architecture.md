@@ -23,7 +23,7 @@
 flowchart TB
     subgraph USER["👤 用户入口"]
         CLI["💻 命令行 (CLI)<br/>python -m comic_translator"]
-        GUI["🖥️ Web 界面 (Comic AI Studio)<br/>翻译流水线 / 调试 / 模型对比<br/>历史任务 / 标注 / 数据集 / 训练 / 设置"]
+        GUI["🖥️ Web 界面 (MangaFlow)<br/>翻译流水线 / 调试 / 模型对比<br/>历史任务 / 标注 / 数据集 / 训练 / 设置"]
     end
 
     subgraph CORE["🧠 核心编排层 (工作流)"]

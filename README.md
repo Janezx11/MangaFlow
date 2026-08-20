@@ -1,4 +1,4 @@
-# Comic Translator · 漫画翻译系统
+# MangaFlow · 漫画翻译系统
 
 自动化的漫画/漫画图片翻译系统：给定一组漫画图片，自动完成 **文字检测 → OCR 识别 → LLM 翻译 → 原文抹除 → 译文回填渲染** 的全流程，输出翻译后的图片。
 
@@ -71,7 +71,7 @@ pip install -e ".[all]"
 
 ```bash
 pip install -e .                        # 核心：CLI + 服务层 + 存储
-pip install -e ".[gui]"                 # + Web GUI（Comic AI Studio）
+pip install -e ".[gui]"                 # + Web GUI（MangaFlow）
 pip install -e ".[ocr]"                 # + EasyOCR 英文识别（GPU 加速可选）
 pip install -e ".[gui,ocr]"             # GUI + 英文 OCR（最小可用组合）
 pip install -e ".[gui,ocr,gpu,yolo,inpaint]"   # 完整翻译管线（推荐）

@@ -1,9 +1,9 @@
-"""Comic AI Studio v0.4 — Gradio GUI 入口
+"""MangaFlow — AI 漫画翻译工作台（Gradio GUI 入口）
 
-人体工学重构:
-- 14 个平铺 Tab → 5 个主 Tab + 🛠 高级工具折叠
-- 普通用户只需看前 3 个 Tab：翻译 → 项目数据 → 历史
-- 开发者工具归入「高级工具」
+布局:
+- 主 Tab：翻译 → 项目数据 → 历史 → 设置
+- 🛠 高级工具：调试/性能/质检/模型对比/Render Lab + ML 开发
+  （标注/数据集/训练/模型库/评估）
 
 用法:
   python -m comic_translator.gui.app
@@ -14,6 +14,29 @@
 import os
 import sys
 from pathlib import Path
+
+# ---- 界面主题与样式 ----
+_THEME = None
+
+
+def _build_theme():
+    """MangaFlow 主题（Soft 变体 + 靛蓝主色）"""
+    global _THEME
+    if _THEME is None:
+        _THEME = gr.themes.Soft(
+            primary_hue="indigo",
+            secondary_hue="blue",
+            neutral_hue="slate",
+        )
+    return _THEME
+
+
+_CSS = """
+#mf-title h1 { font-size: 2.15rem; margin-bottom: 0.15rem; letter-spacing: 0.5px; }
+#mf-tagline { color: #6b7280; margin-top: -0.2rem; margin-bottom: 1rem; }
+#mf-footer { color: #9ca3af; font-size: 0.85rem; text-align: center; margin-top: 2rem; }
+.gradio-container { max-width: 1440px !important; margin: 0 auto !important; }
+"""
 
 # 强制 localhost 绕过系统代理 — 防止 Gradio 自检和事件流被 Clash 等代理拦截
 for var in ("NO_PROXY", "no_proxy"):
@@ -68,8 +91,12 @@ def create_app() -> gr.Blocks:
     # 后台线程预加载模型，避免首次运行时长时间无反馈
     pipeline_service.warmup()
 
-    with gr.Blocks(title="Comic AI Studio v0.4") as app:
-        gr.Markdown("# Comic AI Studio v0.4 · 人体工学重构")
+    with gr.Blocks(title="MangaFlow", theme=_build_theme(), css=_CSS) as app:
+        gr.Markdown("# 🎌 MangaFlow", elem_id="mf-title")
+        gr.Markdown(
+            "_AI 漫画翻译工作台 — 文字检测 · OCR · LLM 翻译 · 渲染回填_",
+            elem_id="mf-tagline",
+        )
 
         with gr.Tabs():
             # ====== 主功能 Tab（普通用户常用） ======
@@ -120,26 +147,30 @@ def create_app() -> gr.Blocks:
                     with gr.Tab("评估面板"):
                         create_benchmark_page(benchmark_service)
 
+        gr.Markdown(
+            "MangaFlow · 本地运行的 AI 漫画翻译工具 — 数据留在本机，译文记忆可复用",
+            elem_id="mf-footer",
+        )
+
     return app
 
 
 def main():
     import argparse
 
-    parser = argparse.ArgumentParser(description="Comic AI Studio")
+    parser = argparse.ArgumentParser(description="MangaFlow — AI 漫画翻译工作台")
     parser.add_argument("--port", type=int, default=7860)
     parser.add_argument("--share", action="store_true")
     parser.add_argument("--host", default="127.0.0.1")
     args = parser.parse_args()
 
     app = create_app()
-    logger.info(f"Starting Comic AI Studio v0.4 on {args.host}:{args.port}")
+    logger.info(f"Starting MangaFlow on {args.host}:{args.port}")
     app.launch(
         server_name=args.host,
         server_port=args.port,
         share=args.share,
         inbrowser=True,
-        theme=gr.themes.Soft(),
     )
 
 

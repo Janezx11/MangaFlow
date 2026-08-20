@@ -25,7 +25,7 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-# Web GUI（Comic AI Studio）
+# Web GUI（MangaFlow）
 gui = ["gradio>=6.0.0"]
 
 # OCR 引擎（至少安装一个）
