@@ -7,21 +7,21 @@ build/
 .pytest_cache/
 .pytest_tmp/
 
-# Data (user content, caches, agent artifacts)
+# Data (user content, caches, agent artifacts) — 仅锚定仓库根目录，避免误伤 src/
 data/cache/
 data/comics/
 data/logs/
 data/output/
 data/tmp/
 data/*.db
-dataset/
-datasets/
+/dataset/
+/datasets/
 
-# Models (large weights, download separately)
-models/
+# Models: 顶层权重目录（勿用裸 `models/`，会误伤 src/comic_translator/models/）
+/models/
 
 # Ultralytics training runs
-runs/
+/runs/
 
 # Local config (contains API keys)
 config.yaml
