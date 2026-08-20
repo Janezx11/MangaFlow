@@ -21,6 +21,8 @@ llm:
     #   Windows:    set DEEPSEEK_API_KEY=sk-xxx
     api_key: "${DEEPSEEK_API_KEY}"
     timeout: 300
+    max_retries: 5    # 失败重试次数
+    rps: 3            # 每秒最大请求数（限流，按账号配额调整）
 
 # 气泡检测
 bubble:
@@ -38,6 +40,9 @@ translation:
   source_lang: en
   target_lang: zh
   style: western_comic  # western_comic / manga / webtoon
+  workers: 4          # GUI 翻译并发 worker 数
+  use_cache: true     # 复用翻译记忆 + 页面翻译缓存（重跑几乎免费）
+  batch_delay: 0.0    # CLI 批处理批次间隔秒（0 = 不等待，仅限流时退避）
 
 # 渲染
 render:
