@@ -167,6 +167,7 @@ src/comic_translator/
 - OCR 目前仅支持**英文**（日文/中文需扩展 OCR provider）
 - GPU 依赖通过「借用 torch 自带 CUDA DLL + `os.add_dll_directory`」加载，需与 onnxruntime-gpu 版本匹配；跨平台兼容性有限
 - 原生文件夹选择器（`SHBrowseForFolderW`）仅 **Windows** 可用
+- **「ML 模型开发」（标注/训练/评估）为进阶功能**：需自备 YOLO 标注数据（labelme 流程见 `scripts/train_bubble_model.py` 文档），数据集目录为本地 `dataset/`（已被 gitignore，不入仓库）
 - 部分模块为占位/未实现（`manga_ocr`、`gemma_qa`、`opencv_render` 等），详见 `OPTIMIZATION.md`
 
 ---

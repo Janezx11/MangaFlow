@@ -1,7 +1,7 @@
 """Dataset Service — 数据集管理
 
-目录约定:
-    datasets/
+目录约定（统一用 `dataset/`，与 scripts/train_bubble_model.py 默认一致）:
+    dataset/
       └── {name}/
              dataset.yaml
              images/{train,val}/*.png
@@ -39,7 +39,7 @@ class DatasetStats:
 class DatasetService:
     """数据集 CRUD + 统计"""
 
-    def __init__(self, root: str = "datasets"):
+    def __init__(self, root: str = "dataset"):
         self.root = Path(root)
         self.root.mkdir(parents=True, exist_ok=True)
 
