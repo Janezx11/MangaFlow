@@ -125,12 +125,12 @@ src/comic_translator/
 
 | # | 问题 | 影响 |
 |---|------|------|
-| 1 | **依赖声明不完整**（gradio/easyocr/onnxruntime/ultralytics 未写入 pyproject） | 别人无法安装运行 |
-| 2 | **无 README** | 无法展示项目 |
-| 3 | **无 LICENSE** | 他人无法合法使用 |
-| 4 | **无版本控制（没有 .git）** | 无法直接 push 到 GitHub |
-| 5 | **.gitignore 严重不完整**：未忽略 `.venv310`(6.7GB)、`.venv`(1.3GB)、`dataset`(163MB)、`models`(115MB)、`.claude/`；却误忽略 `uv.lock` | 直接 push 会爆仓库 |
-| 6 | **config.yaml 含真实 API key**（已被 gitignore 保护，但上架前必须轮换） | 潜在密钥泄露 |
+| 1 | ~~**依赖声明不完整**~~ ✅ 已补全（core 15 + 10 个 extras，版本下限对齐 .venv310；待有网环境实测安装） | 别人无法安装运行 |
+| 2 | ~~**无 README**~~ ✅ 已有（简介/快速开始/安装/配置/模型/限制） | 无法展示项目 |
+| 3 | ~~**无 LICENSE**~~ ✅ 已加 MIT | 他人无法合法使用 |
+| 4 | ~~**无版本控制**~~ ✅ git 仓库已建（7 次提交） | 无法直接 push 到 GitHub |
+| 5 | ~~**.gitignore 严重不完整**~~ ✅ 已重写（忽略 .venv*/models/dataset/runs/.claude/.tools/~/；取消忽略 uv.lock） | 直接 push 会爆仓库 |
+| 6 | **config.yaml 含真实 API key** → 已改为 `${SENSENOVA_API_KEY}` 占位；**旧 key 尚未在控制台轮换** | 潜在密钥泄露 |
 
 ### 🟡 中等（代码质量）
 

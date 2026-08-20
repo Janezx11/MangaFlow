@@ -1,0 +1,10 @@
+# 统一行尾：仓库内 LF，检出时按平台原生处理
+* text=auto
+
+# 源码/配置文件强制 LF（跨平台一致性）
+*.py    text eol=lf
+*.md    text eol=lf
+*.toml  text eol=lf
+*.yaml  text eol=lf
+*.yml   text eol=lf
+*.json  text eol=lf

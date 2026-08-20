@@ -3,6 +3,7 @@ name = "comic-translator"
 version = "0.1.0"
 description = "Product-grade manga/comic translation system"
 readme = "README.md"
+license = "MIT"
 requires-python = ">=3.10"
 dependencies = [
     # --- 核心：包可导入 + CLI 可运行的最小必需集 ---

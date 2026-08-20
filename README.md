@@ -173,7 +173,7 @@ src/comic_translator/
 
 ## 📄 许可
 
-本项目**尚未选定开源许可证**（LICENSE 文件待补）。在许可证确定前，请勿直接用于商业分发。详见 `PROJECT_STATUS.md` 的发布评估。
+MIT License（见 `LICENSE`）。**注意**：本仓库分发的代码为 MIT，但所用**模型权重各有独立许可**（YOLO/EasyOCR/LaMa 等），商用/再分发前请逐一自查。详见「已知限制」与 `PROJECT_STATUS.md`。
 
 ---
 
