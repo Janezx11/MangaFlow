@@ -1,11 +1,29 @@
 # MangaFlow · 漫画翻译系统
 
+![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)
+![Python](https://img.shields.io/badge/python-3.10%2B-blue)
+![Platform](https://img.shields.io/badge/platform-Windows-lightgrey)
+
 自动化的漫画/漫画图片翻译系统：给定一组漫画图片，自动完成 **文字检测 → OCR 识别 → LLM 翻译 → 原文抹除 → 译文回填渲染** 的全流程，输出翻译后的图片。
 
 - **CLI**：`comic-translator`（typer）—— 初始化项目、批量翻译、断点续跑、项目列表
 - **Web GUI**：Gradio（本地 `127.0.0.1:7860`）—— 翻译页、设置页、调试页、实时日志
 
 > 当前定位：**英文漫画 → 中文** 等语言对，强调批量处理、角色一致性与术语一致性。
+
+---
+
+## 🖼️ 效果展示
+
+> 图片说明：`readme_before/after` 为真实翻译输出（en→zh）；GUI 截图待补充后放入 `docs/assets/gui_main.png`。
+
+| 原文 | 翻译后 |
+|------|--------|
+| ![](examples/samples/readme_before.png) | ![](examples/samples/readme_after.png) |
+
+<!-- TODO: GUI 截图
+![GUI 主界面](docs/assets/gui_main.png)
+-->
 
 ---
 
@@ -178,10 +196,17 @@ MIT License（见 `LICENSE`）。**注意**：本仓库分发的代码为 MIT，
 
 ---
 
-## 📚 相关文档
+## 📚 文档
 
+**用户文档**
+- `docs/architecture.md` — 系统架构
+- `docs/BUBBLE_ARCHITECTURE.md` — 气泡检测架构
+- `docs/OCR_COMPATIBILITY.md` — OCR 兼容性说明
+- `docs/BATCH_PIPELINE_DESIGN.md` — 批处理管线设计
+
+**维护者文档**
+- `CHANGELOG.md` — 变更日志
 - `PLAN.md` — 改进计划与路线图
 - `PROJECT_STATUS.md` — 项目现状与已知问题
-- `OPTIMIZATION.md` — 优化核查报告（P0/P1/P2 清单）
-- `RELEASE_CHECKLIST.md` — v0.1.0 上架前核对清单（clone 自检/实测步骤）
-- `docs/` — 架构、气泡、OCR 兼容性文档
+- `OPTIMIZATION.md` — 优化核查报告
+- `RELEASE_CHECKLIST.md` — 发布核对清单
