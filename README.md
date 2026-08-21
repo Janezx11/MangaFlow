@@ -15,13 +15,13 @@
 
 ## 🖼️ 效果展示
 
-> 图片说明：`readme_before/after` 为真实翻译输出（en→zh）；GUI 截图待补充后放入 `docs/assets/gui_main.png`。
+> 翻译前后对比图与 GUI 界面截图待补充（由维护者提供真实运行截图）。
 
+<!-- TODO: 替换为真实截图
 | 原文 | 翻译后 |
 |------|--------|
-| ![](examples/samples/readme_before.png) | ![](examples/samples/readme_after.png) |
+| ![](docs/assets/before.png) | ![](docs/assets/after.png) |
 
-<!-- TODO: GUI 截图
 ![GUI 主界面](docs/assets/gui_main.png)
 -->
 
