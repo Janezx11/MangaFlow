@@ -75,12 +75,14 @@ class FontSizeSolver:
         if avail_h <= 0 or avail_w <= 0:
             return min_size, [text], 0.0
 
-        # 从最大字号向下搜索
+        # 从最大字号向下搜索；若最小字号仍放不下，允许低于 min_size（硬下限 8），
+        # 避免退化成长文本整段单行渲染导致溢出气泡。
+        hard_floor = min(8, min_size)
         best_size = min_size
         best_lines = [text]
         best_score = 0.0
 
-        for size in range(max_size, min_size - 1, -2):
+        for size in range(max_size, hard_floor - 1, -2):
             _, line_h = self._fm.measure_text("A", font_path, size)
             if line_h <= 0:
                 continue
@@ -145,14 +147,7 @@ class FontSizeSolver:
             )
             per_line_widths = [min(w, avail_w) for w in per_line_widths]
             best_lines, cost = self._breaker.break_text(text, per_line_widths, font_path, min_size)
-            # fallback 路径也检查宽度
-            if best_lines:
-                for i, line_text in enumerate(best_lines):
-                    lw, _ = self._fm.measure_text(line_text, font_path, min_size)
-                    max_w = per_line_widths[i] if i < len(per_line_widths) else lw
-                    if lw > max_w + 2:
-                        best_lines = [text]
-                        break
+            # 保持按行换行结果：即使个别行略超宽，也优于整段单行渲染（后者溢出更严重）
 
         logger.debug(f"FontSizeSolver: size={best_size}, lines={len(best_lines)}, score={best_score:.2f}")
         return best_size, best_lines, best_score

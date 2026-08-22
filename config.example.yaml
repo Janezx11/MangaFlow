@@ -51,7 +51,7 @@ render:
     lama_model_path: models/lama/big-lama
     opencv_method: telea
     opencv_radius: 5
-    provider: opencv
+    provider: lama      # 修复引擎：lama（跨风格稳定，首次自动下载模型）/ opencv（快但对纹理背景易糊）
   mask:
     padding: 4
     provider: ocr
