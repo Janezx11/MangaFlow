@@ -92,7 +92,7 @@ def create_app() -> gr.Blocks:
     pipeline_service.warmup()
 
     with gr.Blocks(title="MangaFlow", theme=_build_theme(), css=_CSS) as app:
-        gr.Markdown("# 🎌 MangaFlow", elem_id="mf-title")
+        gr.Markdown("# 📖 MangaFlow", elem_id="mf-title")
         gr.Markdown(
             "_AI 漫画翻译工作台 — 文字检测 · OCR · LLM 翻译 · 渲染回填_",
             elem_id="mf-tagline",
