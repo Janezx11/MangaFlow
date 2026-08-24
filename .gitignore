@@ -23,6 +23,11 @@ data/*.db
 # Ultralytics training runs
 /runs/
 
+# 示例图片（本地工作素材，不提交；README 用的图在 docs/assets/）
+examples/samples/
+examples/*.png
+examples/*.jpg
+
 # Local config (contains API keys)
 config.yaml
 
