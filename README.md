@@ -15,15 +15,17 @@
 
 ## 🖼️ 效果展示
 
-> 翻译前后对比图与 GUI 界面截图待补充（由维护者提供真实运行截图）。
+**翻译前后对比**（en → zh，真实渲染输出）：
 
-<!-- TODO: 替换为真实截图
 | 原文 | 翻译后 |
 |------|--------|
 | ![](docs/assets/before.png) | ![](docs/assets/after.png) |
 
-![GUI 主界面](docs/assets/gui_main.png)
--->
+**GUI 界面**：
+
+| 主界面 | 设置页 | 调试查看器 |
+|---|---|---|
+| ![](docs/assets/gui_main.png) | ![](docs/assets/gui_settings.png) | ![](docs/assets/gui_debug.png) |
 
 ---
 
