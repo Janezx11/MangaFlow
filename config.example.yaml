@@ -21,8 +21,8 @@ llm:
     #   Windows:    set DEEPSEEK_API_KEY=sk-xxx
     api_key: "${DEEPSEEK_API_KEY}"
     timeout: 300
-    max_retries: 5    # 失败重试次数
-    rps: 3            # 每秒最大请求数（限流，按账号配额调整）
+    max_retries: 8    # 失败重试次数（429/繁忙时更耐心）
+    rps: 1            # 每秒最大请求数（保守，避免触发账号限流；配额高可调大）
 
 # 气泡检测
 bubble:
@@ -40,12 +40,13 @@ translation:
   source_lang: en
   target_lang: zh
   style: western_comic  # western_comic / manga / webtoon
-  workers: 4          # GUI 翻译并发 worker 数
+  workers: 2          # GUI 翻译并发 worker 数（保守，减少 429；配额高可调大）
   use_cache: true     # 复用翻译记忆 + 页面翻译缓存（重跑几乎免费）
   batch_delay: 0.0    # CLI 批处理批次间隔秒（0 = 不等待，仅限流时退避）
 
 # 渲染
 render:
+  background_cleaning: true   # 整块擦除气泡内部再重填（对残留英文最彻底）
   inpaint:
     device: auto
     lama_model_path: models/lama/big-lama
@@ -53,7 +54,7 @@ render:
     opencv_radius: 5
     provider: lama      # 修复引擎：lama（跨风格稳定，首次自动下载模型）/ opencv（快但对纹理背景易糊）
   mask:
-    padding: 4
+    padding: 18         # 覆盖粗体笔画；仍残留可继续加大
     provider: ocr
     refinement:
       enabled: true
