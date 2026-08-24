@@ -44,6 +44,7 @@ class FontSizeSolver:
         max_size: int,
         image_shape: tuple[int, int],
         line_spacing: float = 1.3,
+        target_rect: tuple[int, int, int, int] | None = None,
     ) -> tuple[int, list[str], float]:
         """求解最佳字号和换行
 
@@ -56,6 +57,9 @@ class FontSizeSolver:
             max_size: 最大字号
             image_shape: (h, w)
             line_spacing: 行间距
+            target_rect: 可选 (x1,y1,x2,y2) —— 原文 OCR 框占位。
+                提供时把可用宽/高限制在原文占位内（带下限），
+                让译文字号/换行贴合原文，避免溢出或过大。
 
         Returns:
             (font_size, lines, score)
@@ -71,6 +75,14 @@ class FontSizeSolver:
         pad = self._padding.compute(safe_area, max_size)
         avail_h = box_h - pad.y * 2
         avail_w = box_w - pad.x * 2
+
+        # ★ OCR 框指导：把可用区域限制在原文占位内（留 8px 内边距，下限 40px）
+        if target_rect is not None:
+            tx1, ty1, tx2, ty2 = target_rect
+            t_w = (tx2 - tx1) - 8
+            t_h = (ty2 - ty1) - 8
+            avail_w = min(avail_w, max(t_w, 40))
+            avail_h = min(avail_h, max(t_h, 40))
 
         if avail_h <= 0 or avail_w <= 0:
             return min_size, [text], 0.0

@@ -186,11 +186,13 @@ class TypographyServiceV2:
         region_type: str,
         image_shape: tuple[int, int],
         mask: np.ndarray | None = None,
+        ocr_rect: tuple[int, int, int, int] | None = None,
     ) -> ParagraphLayout | None:
         """对单个气泡进行完整排版
 
         - 有 polygon 时：基于 SafeArea（距离变换 + 最大内接矩形）
         - 无 polygon 时（singleton OCR 块）：直接基于 bbox 简单居中
+        - ocr_rect: 可选，原文 OCR 框占位，用于限制字号/换行贴合原文
         """
         if not text.strip():
             return None
@@ -220,6 +222,7 @@ class TypographyServiceV2:
             max_size=max_size,
             image_shape=image_shape,
             line_spacing=line_spacing,
+            target_rect=ocr_rect,
         )
 
         if not lines:
