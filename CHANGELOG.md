@@ -48,4 +48,4 @@
 - `docs/`：架构、气泡、OCR 兼容性、批处理管线设计
 - `OPTIMIZATION.md`、`RELEASE_CHECKLIST.md`、`PLAN.md`
 
-[0.1.0]: https://github.com/Janezx11/comic-translator/releases/tag/v0.1.0
+[0.1.0]: https://github.com/Janezx11/MangaFlow/releases/tag/v0.1.0

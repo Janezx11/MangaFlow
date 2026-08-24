@@ -330,8 +330,11 @@ class RenderQualityService:
             dialogue_blocks, qa
         )
 
-        # 7. Save rendered image to flat output directory
-        out_path = out_dir / f"page_{page:04d}_rendered.png"
+        # 7. Save rendered image to flat output directory（优先继承原文件名）
+        if source_path:
+            out_path = out_dir / f"{Path(source_path).stem}_translated.png"
+        else:
+            out_path = out_dir / f"page_{page:04d}_rendered.png"
         draw_img.save(str(out_path))
 
         # 8. Debug outputs → 放入 _debug/ 子目录，不污染用户输出目录
