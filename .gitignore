@@ -7,7 +7,7 @@ build/
 .pytest_cache/
 .pytest_tmp/
 
-# Data (user content, caches, agent artifacts) — 仅锚定仓库根目录，避免误伤 src/
+# Data (user content, caches, agent artifacts) - only anchor to repo root
 data/cache/
 data/comics/
 data/logs/
@@ -17,16 +17,19 @@ data/*.db
 /dataset/
 /datasets/
 
-# Models: 顶层权重目录（勿用裸 `models/`，会误伤 src/comic_translator/models/）
+# Models: top-level weights dir (do NOT use bare models/ which hits src/)
 /models/
 
 # Ultralytics training runs
 /runs/
 
-# 示例图片（本地工作素材，不提交；README 用的图在 docs/assets/）
+# Sample images (local working assets, not committed; README uses docs/assets/)
 examples/samples/
 examples/*.png
 examples/*.jpg
+
+# Personal tool dir (unrelated to project, do not commit)
+/插件/
 
 # Local config (contains API keys)
 config.yaml
@@ -48,7 +51,3 @@ config.yaml
 # OS
 .DS_Store
 Thumbs.db
-
-# ���˹���Ŀ¼������Ŀ�޹أ����ύ��
-/���/
-
