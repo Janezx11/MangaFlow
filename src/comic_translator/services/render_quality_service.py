@@ -30,6 +30,7 @@ from comic_translator.services.mask.base_mask_provider import MaskProvider
 from comic_translator.services.mask_refinement_service import MaskRefinementService
 from comic_translator.services.render_qa_service import RenderQAService
 from comic_translator.services.render_quality_evaluator import RenderQualityEvaluator
+from comic_translator.services.render_service import merge_ocr_rect
 from comic_translator.services.text_normalizer import TextNormalizer
 from comic_translator.services.typography_qa import TypographyQA
 from comic_translator.services.typography_service_v2 import TypographyServiceV2
@@ -162,27 +163,6 @@ class RenderQualityService:
                     expanded[y1:y2, x1:x2] = 255
         return expanded
 
-    @staticmethod
-    def _merge_ocr_rect(dialogue_block) -> tuple[int, int, int, int] | None:
-        """合并该块所有 OCR block 的 bbox，得到原文占位矩形。
-
-        用于排版时把译文字号/换行限制在原文占位内（贴合原文）。
-        无 OCR 块时返回 None（退回气泡安全区排版）。
-        """
-        rects = [
-            b.bbox for b in (getattr(dialogue_block, "ocr_blocks", None) or [])
-            if getattr(b, "bbox", None)
-        ]
-        if not rects:
-            return None
-        x1 = min(int(r[0]) for r in rects)
-        y1 = min(int(r[1]) for r in rects)
-        x2 = max(int(r[2]) for r in rects)
-        y2 = max(int(r[3]) for r in rects)
-        if x2 <= x1 or y2 <= y1:
-            return None
-        return (x1, y1, x2, y2)
-
     def _build_translation_debug(self, dialogue_blocks: list[DialogueBlock]) -> dict:
         blocks = []
         for db in dialogue_blocks:
@@ -270,7 +250,7 @@ class RenderQualityService:
                 region_type=db.region_type,
                 image_shape=(h, w),
                 mask=getattr(db.bubble, 'mask', None),
-                ocr_rect=self._merge_ocr_rect(db),
+                ocr_rect=merge_ocr_rect(db),
             )
             if layout is None:
                 db.render_status = "failed"

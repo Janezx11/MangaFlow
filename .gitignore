@@ -48,3 +48,7 @@ config.yaml
 # OS
 .DS_Store
 Thumbs.db
+
+# 个人工具目录（与项目无关，勿提交）
+/插件/
+

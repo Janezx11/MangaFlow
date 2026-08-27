@@ -6,6 +6,8 @@
 
 自动化的漫画/漫画图片翻译系统：给定一组漫画图片，自动完成 **文字检测 → OCR 识别 → LLM 翻译 → 原文抹除 → 译文回填渲染** 的全流程，输出翻译后的图片。
 
+> **English**: An automated **manga / comic translation pipeline** — detect text regions → OCR → LLM translate → erase original → render translated text back onto the image. Web GUI (Gradio) + CLI. Currently supports **English → Chinese** comic translation with translation memory, character consistency, and batch/resume support.
+
 - **CLI**：`comic-translator`（typer）—— 初始化项目、批量翻译、断点续跑、项目列表
 - **Web GUI**：Gradio（本地 `127.0.0.1:7860`）—— 翻译页、设置页、调试页、实时日志
 
@@ -188,6 +190,7 @@ src/comic_translator/
 - GPU 依赖通过「借用 torch 自带 CUDA DLL + `os.add_dll_directory`」加载，需与 onnxruntime-gpu 版本匹配；跨平台兼容性有限
 - 原生文件夹选择器（`SHBrowseForFolderW`）仅 **Windows** 可用
 - **「ML 模型开发」（标注/训练/评估）为进阶功能**：需自备 YOLO 标注数据（labelme 流程见 `scripts/train_bubble_model.py` 文档），数据集目录为本地 `dataset/`（已被 gitignore，不入仓库）
+- **依赖合规**：本仓库代码为 MIT，但依赖中 **`ultralytics` 为 AGPL-3.0**、模型权重各有独立许可（YOLO/EasyOCR/LaMa 等）。本地/自用/开源展示一般无碍；**商用或作为在线服务分发前请评估 AGPL 义务与权重许可**。
 - 部分模块为占位/未实现（`manga_ocr`、`gemma_qa`、`opencv_render` 等），详见 `OPTIMIZATION.md`
 
 ---

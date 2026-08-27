@@ -17,6 +17,26 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+
+
+def merge_ocr_rect(dialogue_block) -> tuple[int, int, int, int] | None:
+    """合并一个 DialogueBlock 内所有 OCR block 的 bbox，得到原文占位矩形。
+
+    用于排版时把字号/换行限制在原文占位内（贴合原文）。无 OCR 块时返回 None。
+    """
+    rects = [
+        b.bbox for b in (getattr(dialogue_block, "ocr_blocks", None) or [])
+        if getattr(b, "bbox", None)
+    ]
+    if not rects:
+        return None
+    x1 = min(int(r[0]) for r in rects)
+    y1 = min(int(r[1]) for r in rects)
+    x2 = max(int(r[2]) for r in rects)
+    y2 = max(int(r[3]) for r in rects)
+    if x2 <= x1 or y2 <= y1:
+        return None
+    return (x1, y1, x2, y2)
 from typing import TYPE_CHECKING
 
 import cv2
@@ -119,23 +139,6 @@ class RenderService:
 
     # ---- Main render ----
 
-    @staticmethod
-    def _merge_ocr_rect(dialogue_block) -> tuple[int, int, int, int] | None:
-        """合并该块所有 OCR block 的 bbox，得到原文占位矩形（用于排版贴合原文）。"""
-        rects = [
-            b.bbox for b in (getattr(dialogue_block, "ocr_blocks", None) or [])
-            if getattr(b, "bbox", None)
-        ]
-        if not rects:
-            return None
-        x1 = min(int(r[0]) for r in rects)
-        y1 = min(int(r[1]) for r in rects)
-        x2 = max(int(r[2]) for r in rects)
-        y2 = max(int(r[3]) for r in rects)
-        if x2 <= x1 or y2 <= y1:
-            return None
-        return (x1, y1, x2, y2)
-
     def _prepare_render_text(self, dialogue_blocks, fallback_to_source: bool):
         for db in dialogue_blocks:
             source = (db.merged_text or "").strip()
@@ -232,7 +235,7 @@ class RenderService:
                 region_type=db.region_type,
                 image_shape=(h, w),
                 mask=bubble_mask,
-                ocr_rect=self._merge_ocr_rect(db),
+                ocr_rect=merge_ocr_rect(db),
             )
 
             if layout is None:
