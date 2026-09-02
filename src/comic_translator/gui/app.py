@@ -1,9 +1,11 @@
 """MangaFlow / AI 漫画翻译工作台（Gradio GUI 入口）
 
-布局:
-- 主 Tab: 翻译 / 项目数据 / 历史 / 设置
-- 高级工具: 调试/性能/质检/模型对比/Render Lab + ML 开发
-  (标注/数据集/训练/模型库/评估)
+Shell:
+- Header（应用名 + 当前页）
+- Sidebar（分组导航，按钮切换视图可见性，无嵌套 Tabs 主导航）
+- Main（14 个视图，默认显示 Translation Workspace）
+
+设计系统：Light-first / Zinc + Teal（见 docs/UI_DESIGN_SYSTEM.md）。
 
 用法:
   python -m comic_translator.gui.app
@@ -14,162 +16,6 @@
 import os
 import sys
 from pathlib import Path
-
-# ---- 界面主题与样式 ----
-_THEME = None
-
-
-def _build_theme():
-    """MangaFlow 主题（Soft 变体 + 青绿强调，科技感）
-
-    配色一致性锁：全站单一强调色 cyan，深色工作台基调（由 CSS 强压）。
-    形状一致性锁：全站 8px 圆角。
-    深色为默认主题（科技感工作台），亮色模式保留作为可选项。
-    """
-    global _THEME
-    if _THEME is None:
-        _THEME = gr.themes.Soft(
-            primary_hue="cyan",
-            secondary_hue="slate",
-            neutral_hue="slate",
-        )
-    return _THEME
-
-
-_CSS = """
-/* ============================================================
-   MangaFlow 深色科技工作台皮肤
-   设计读：本地专业工具 / 冷静高信息密度 / 青绿强调
-   VARIANCE 4 / MOTION 2 / DENSITY 6
-   ============================================================ */
-:root {
-  --mf-font-sans: 'Geist', 'Geist Fallback', -apple-system, BlinkMacSystemFont,
-                   'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei',
-                   system-ui, sans-serif;
-  --mf-font-mono: 'Geist Mono', 'JetBrains Mono', ui-monospace, 'SFMono-Regular',
-                   'Cascadia Code', Consolas, monospace;
-  --mf-accent: #22d3ee;          /* 青绿强调 */
-  --mf-accent-strong: #06b6d4;
-  --mf-accent-dim: rgba(34, 211, 238, 0.14);
-  --mf-accent-text: #0c0a09;     /* 青绿按钮上的深色文字（对比度佳） */
-  --mf-text: #e7e5e4;            /* 深色下主文字 */
-  --mf-text-sub: #a8a29e;        /* 次级文字 */
-  --mf-bg: #0c0a09;              /* 深黑底 */
-  --mf-bg-elev: #171412;         /* 提升层（卡片/输入） */
-  --mf-bg-hover: #1f1b19;        /* hover */
-  --mf-border: #2b2624;          /* 细边框 */
-  --mf-border-accent: rgba(34, 211, 238, 0.5);
-  --mf-radius: 8px;
-  --mf-glow: 0 0 0 1px rgba(34,211,238,.12), 0 8px 30px rgba(0,0,0,.45);
-}
-body, .gradio-container, .gr-block { font-family: var(--mf-font-sans); color: var(--mf-text); }
-code, pre, .mono, .gr-code, kbd, samp { font-family: var(--mf-font-mono); }
-
-/* ---- 根容器：深色工作台底板 ---- */
-.gradio-container {
-  max-width: 1440px !important;
-  margin: 0 auto !important;
-  padding: 1rem 1.2rem 1.8rem !important;
-  background: var(--mf-bg) !important;
-  border: 1px solid var(--mf-border);
-  border-radius: 16px;
-  box-shadow: var(--mf-glow);
-}
-
-/* ---- 自定义头部横幅（深色 + 青绿边条 + 微光） ---- */
-#mf-hero {
-  background: linear-gradient(135deg, #0c0a09 0%, #131010 55%, rgba(6,182,212,.10) 120%) !important;
-  border-radius: 12px !important;
-  border: 1px solid var(--mf-border);
-  border-left: 4px solid var(--mf-accent) !important;
-  box-shadow: inset 0 1px 0 rgba(255,255,255,.04);
-}
-#mf-hero .mf-hero-title { font-size: 1.8rem; font-weight: 700; letter-spacing: .5px; color: #fff; }
-#mf-hero .mf-hero-sub { color: var(--mf-text-sub); font-size: 1rem; margin-top: .15rem; }
-#mf-footer { color: var(--mf-text-sub); font-size: .82rem; text-align: center; margin-top: 2.4rem; }
-
-/* ---- 形状一致性锁：全站 8px 圆角 ---- */
-button, .gr-button, .gr-box, .gr-input, .gr-text-input, .gr-dropdown, .gr-tabs,
-.block, .gr-block, .gr-panel, .gr-form, .gr-group, .gr-accordion,
-.gap, .min, .max, .wrap, .form, .gallery, .panel, .gr-dataframe, .gr-slider {
-  border-radius: var(--mf-radius) !important;
-}
-
-/* ---- 分组/卡片：半透明深色卡片 + 细边框 ---- */
-.mf-card {
-  border: 1px solid var(--mf-border);
-  border-radius: var(--mf-radius);
-  padding: 0.85rem 1rem 0.6rem;
-  background: var(--mf-bg-elev);
-  margin-bottom: 0.5rem;
-  transition: border-color .18s ease, box-shadow .18s ease;
-}
-.mf-card:hover { border-color: var(--mf-border-accent); }
-.mf-card h3 { margin: .05rem 0 .55rem; font-size: 1.02rem; color: var(--mf-text); }
-.mf-card .mf-desc { color: var(--mf-text-sub); font-size: .9rem; margin-bottom: .5rem; }
-.mf-section-title h2 { margin: .2rem 0 .4rem; color: var(--mf-text); }
-
-/* ---- 输入/下拉/表单：深色底 + 细边框 + focus 光晕 ---- */
-.gradio-container input, .gradio-container textarea, .gradio-container select,
-.gradio-container .gr-input, .gradio-container .gr-text-input,
-.gradio-container .gr-dropdown, .gradio-container .gr-number,
-.gradio-container .gr-slider input[type=range] {
-  background: var(--mf-bg-elev) !important;
-  color: var(--mf-text) !important;
-  border: 1px solid var(--mf-border) !important;
-  border-radius: var(--mf-radius) !important;
-}
-.gradio-container input:focus, .gradio-container textarea:focus,
-.gradio-container select:focus, .gradio-container .gr-input:focus {
-  border-color: var(--mf-accent) !important;
-  box-shadow: 0 0 0 3px var(--mf-accent-dim) !important;
-  outline: none !important;
-}
-.gradio-container label, .gradio-container .block-label { color: var(--mf-text-sub) !important; font-size: .9rem; }
-
-/* ---- 按钮：深底 + 强调 hover 发光 + 按压反馈 ---- */
-.gradio-container button {
-  background: var(--mf-bg-elev) !important;
-  color: var(--mf-text) !important;
-  border: 1px solid var(--mf-border) !important;
-  border-radius: var(--mf-radius) !important;
-  transition: border-color .15s ease, box-shadow .15s ease, transform .08s ease;
-}
-.gradio-container button:hover { border-color: var(--mf-accent) !important; box-shadow: 0 0 12px var(--mf-accent-dim) !important; }
-.gradio-container button:active { transform: scale(.98); }
-.gradio-container button.primary, .gradio-container button[variant=primary],
-#mf-start-btn {
-  background: var(--mf-accent) !important;
-  color: var(--mf-accent-text) !important;
-  border: none !important;
-  font-weight: 600;
-}
-#mf-start-btn { height: 46px !important; font-size: 1.05rem !important; }
-#mf-cancel-btn { height: 46px !important; }
-
-/* ---- 紧凑化：表单/输入/分组间距（D6） ---- */
-.gradio-container .gr-form, .gradio-container .gr-group,
-.gradio-container .gr-row, .gradio-container .gr-column { gap: 0.5rem !important; }
-.gradio-container .gr-block, .gradio-container .gr-panel { padding: 0.6rem 0.8rem !important; }
-
-/* ---- 进度条：细线 + 青绿 ---- */
-.gradio-container .progress-bar, .gradio-container .gr-progress {
-  background: var(--mf-accent-strong) !important; border-radius: 999px !important;
-}
-
-/* ---- Tab 栏：选中态青绿下划线 ---- */
-.gradio-container .tab-nav button { color: var(--mf-text-sub) !important; }
-.gradio-container .tab-nav button.selected { color: var(--mf-accent) !important; border-color: var(--mf-accent) !important; }
-
-/* ---- 状态/性能文本 ---- */
-#mf-status { font-size: 1rem; color: var(--mf-text); }
-#mf-perf { font-size: .92rem; color: var(--mf-text-sub); font-family: var(--mf-font-mono); }
-
-/* ---- a11y：焦点环 + 选中文本 ---- */
-:focus-visible { outline: 2px solid var(--mf-accent) !important; outline-offset: 2px !important; }
-::selection { background: var(--mf-accent-dim); color: var(--mf-text); }
-"""
-
 
 # 强制 localhost 绕过系统代理 / 防止 Gradio 自检和事件流被 Clash 等代理拦截
 for var in ("NO_PROXY", "no_proxy"):
@@ -208,91 +54,328 @@ from comic_translator.gui.pages.quality_report_page import create_quality_report
 from comic_translator.gui.pages.project_manage_page import create_project_page
 from comic_translator.gui.pages.perf_monitor_page import create_perf_monitor_page
 
+# ---------------------------------------------------------------------------
+# Design Tokens（Light / Zinc + Teal）— 见 docs/UI_DESIGN_SYSTEM.md
+# ---------------------------------------------------------------------------
+_THEME = None
+
+
+def _build_theme() -> gr.themes.Soft:
+    """Light-first / Zinc + Teal。Teal 仅作 Primary/Accent，不铺满全屏。"""
+    global _THEME
+    if _THEME is None:
+        _THEME = gr.themes.Soft(
+            primary_hue="teal",
+            secondary_hue="zinc",
+            neutral_hue="zinc",
+        )
+    return _THEME
+
+
+_CSS = """
+/* ============================================================
+   MangaFlow Design Tokens — Light / Zinc + Teal
+   ============================================================ */
+:root {
+  --mf-bg: #f4f4f5;                 /* zinc-100 全局背景 */
+  --mf-surface: #ffffff;            /* 卡片/面板/输入 */
+  --mf-surface-elev: #fafafa;
+  --mf-border: #e4e4e7;             /* zinc-200 */
+  --mf-border-strong: #d4d4d8;      /* zinc-300 */
+  --mf-primary: #0d9488;            /* teal-600 */
+  --mf-primary-hover: #0f766e;      /* teal-700 */
+  --mf-primary-soft: rgba(13,148,136,.10);
+  --mf-text: #18181b;               /* zinc-900 */
+  --mf-text-2: #52525b;             /* zinc-600 */
+  --mf-text-3: #a1a1aa;             /* zinc-400 */
+  --mf-success: #16a34a;
+  --mf-warning: #d97706;
+  --mf-error: #dc2626;
+  --mf-info: #2563eb;
+  --mf-font-sans: 'Geist', 'Geist Fallback', -apple-system, BlinkMacSystemFont,
+                  'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei',
+                  system-ui, sans-serif;
+  --mf-font-mono: 'Geist Mono', 'JetBrains Mono', ui-monospace, 'SFMono-Regular',
+                  'Cascadia Code', Consolas, monospace;
+  --mf-r-sm: 4px;
+  --mf-r-md: 6px;
+  --mf-space-1: 4px; --mf-space-2: 8px; --mf-space-3: 12px;
+  --mf-space-4: 16px; --mf-space-5: 20px; --mf-space-6: 24px; --mf-space-8: 32px;
+}
+
+/* ============================================================
+   Global layout
+   ============================================================ */
+body, .gradio-container, .gr-block { font-family: var(--mf-font-sans); color: var(--mf-text); }
+.gradio-container {
+  max-width: 1500px !important;
+  margin: 0 auto !important;
+  background: var(--mf-bg) !important;
+  padding: 12px 16px 24px !important;
+}
+code, pre, .mono, kbd, samp { font-family: var(--mf-font-mono); }
+
+/* ---- Header ---- */
+.mf-header {
+  display: flex; align-items: baseline; justify-content: space-between;
+  padding: 10px 2px 10px 2px; margin-bottom: 8px;
+  border-bottom: 1px solid var(--mf-border);
+}
+.mf-header .mf-brand { font-size: 20px; font-weight: 700; color: var(--mf-text); letter-spacing: .3px; }
+.mf-header .mf-brand .mf-brand-tag { color: var(--mf-primary); }
+.mf-header .mf-current { font-size: 13px; color: var(--mf-text-2); }
+
+/* ============================================================
+   Sidebar
+   ============================================================ */
+.mf-sidebar { border-right: 1px solid var(--mf-border); padding-right: 12px; }
+.mf-nav-group { font-size: 11px; font-weight: 600; text-transform: uppercase;
+  letter-spacing: .06em; color: var(--mf-text-3); margin: 14px 0 4px 4px; }
+.mf-nav-btn {
+  display: block; width: 100%; text-align: left;
+  padding: 6px 10px !important; margin: 1px 0 !important;
+  font-size: 13px !important; font-weight: 500 !important;
+  color: var(--mf-text-2) !important;
+  background: transparent !important; border: none !important;
+  border-left: 3px solid transparent !important;
+  border-radius: var(--mf-r-sm) !important;
+  transition: background .12s ease, color .12s ease, border-color .12s ease;
+}
+.mf-nav-btn:hover { background: var(--mf-surface) !important; color: var(--mf-text) !important; }
+.mf-nav-btn.mf-nav-active {
+  background: var(--mf-primary-soft) !important;
+  color: var(--mf-primary) !important;
+  border-left-color: var(--mf-primary) !important;
+  font-weight: 600 !important;
+}
+
+/* ============================================================
+   Main content / density
+   ============================================================ */
+.mf-main { padding-left: 16px; }
+.mf-main > .block, .mf-main > .gr-block { background: transparent !important; }
+.mf-page-title { font-size: 18px; font-weight: 600; color: var(--mf-text); margin: 0 0 12px 0; }
+.mf-section-title { font-size: 14px; font-weight: 600; color: var(--mf-text); margin: 4px 0 8px 0; }
+.mf-desc { color: var(--mf-text-2); font-size: 12px; }
+
+/* 卡片：仅表达层级时使用（Surface + 边框 + 4px 圆角，不用大阴影） */
+.mf-card {
+  background: var(--mf-surface);
+  border: 1px solid var(--mf-border);
+  border-radius: var(--mf-r-md);
+  padding: 12px;
+  margin-bottom: 12px;
+}
+
+/* ============================================================
+   Components
+   ============================================================ */
+/* 按钮层级：primary / secondary / ghost */
+.gradio-container button {
+  font-family: var(--mf-font-sans);
+  border-radius: var(--mf-r-sm) !important;
+  font-size: 13px !important;
+  min-height: 32px !important;
+}
+.gradio-container button.primary, .gradio-container button[variant=primary] {
+  background: var(--mf-primary) !important; color: #fff !important;
+  border: 1px solid var(--mf-primary) !important; font-weight: 600;
+}
+.gradio-container button.primary:hover { background: var(--mf-primary-hover) !important; }
+.gradio-container button:not(.primary) {
+  background: var(--mf-surface) !important; color: var(--mf-text) !important;
+  border: 1px solid var(--mf-border-strong) !important;
+}
+.gradio-container button:not(.primary):hover { background: var(--mf-surface-elev) !important; border-color: var(--mf-primary) !important; }
+.gradio-container button[variant=stop] { background: transparent !important; color: var(--mf-error) !important; border-color: var(--mf-error) !important; }
+.gradio-container button:active { transform: scale(.98); }
+/* 抖动防护：tab 类按钮不缩放 */
+.gradio-container .tab-nav button:active { transform: none !important; }
+
+/* 输入/表单 */
+.gradio-container input, .gradio-container textarea, .gradio-container select {
+  background: var(--mf-surface) !important; color: var(--mf-text) !important;
+  border: 1px solid var(--mf-border) !important; border-radius: var(--mf-r-sm) !important;
+  font-size: 13px !important;
+}
+.gradio-container input:focus, .gradio-container textarea:focus, .gradio-container select:focus {
+  border-color: var(--mf-primary) !important;
+  box-shadow: 0 0 0 2px var(--mf-primary-soft) !important; outline: none !important;
+}
+.gradio-container label { color: var(--mf-text-2) !important; font-size: 12px !important; }
+
+/* 分组/面板：紧凑密度 */
+.gradio-container .gr-group, .gradio-container .gr-form,
+.gradio-container .gr-row, .gradio-container .gr-column { gap: 8px !important; }
+.gradio-container .gr-block, .gradio-container .gr-panel { padding: 8px !important; }
+
+/* 表格（Dataframe）：紧凑 */
+.gradio-container table, .gradio-container .gr-dataframe { font-size: 12px !important; }
+.gradio-container table th { font-size: 11px !important; color: var(--mf-text-3) !important; font-weight: 600; }
+.gradio-container table td { padding: 4px 8px !important; }
+
+/* 日志/等宽文本 */
+.mono, .gr-textbox textarea { font-family: var(--mf-font-mono) !important; font-size: 12.5px !important; line-height: 1.45 !important; }
+
+/* 进度条 */
+.gradio-container .progress-bar, .gradio-container .gr-progress {
+  background: var(--mf-primary) !important; border-radius: 999px !important; height: 4px !important;
+}
+
+/* Accordion */
+.gradio-container .gr-accordion .label-wrap { font-size: 13px !important; font-weight: 600; color: var(--mf-text); }
+.gradio-container .gr-accordion { border: 1px solid var(--mf-border); border-radius: var(--mf-r-md); }
+
+/* 滚动条（暗色表面下更顺眼） */
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-thumb { background: #d4d4d8; border-radius: 5px; }
+
+/* a11y */
+:focus-visible { outline: 2px solid var(--mf-primary) !important; outline-offset: 2px !important; }
+::selection { background: var(--mf-primary-soft); }
+
+/* ---- 状态徽标（文本为主，非 emoji） ---- */
+.mf-status-ok { color: var(--mf-success); font-weight: 600; }
+.mf-status-run { color: var(--mf-primary); font-weight: 600; }
+.mf-status-warn { color: var(--mf-warning); font-weight: 600; }
+.mf-status-err { color: var(--mf-error); font-weight: 600; }
+
+/* ============================================================
+   Translation Workspace
+   ============================================================ */
+.mf-controls { border-right: 1px solid var(--mf-border); padding-right: 12px; }
+.mf-preview .gr-image, .mf-preview img {
+  background: var(--mf-surface);
+  border: 1px solid var(--mf-border);
+  border-radius: var(--mf-r-md);
+}
+#mf-preview { min-height: 420px; }
+/* Pipeline 步骤条 */
+.mf-pipeline-steps {
+  display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
+  padding: 10px 12px; margin-bottom: 12px;
+  background: var(--mf-surface); border: 1px solid var(--mf-border);
+  border-radius: var(--mf-r-md);
+}
+.mf-step {
+  font-size: 12px; font-weight: 500; color: var(--mf-text-3);
+  padding: 4px 10px; border-radius: 999px; border: 1px solid var(--mf-border);
+}
+.mf-step.active { color: var(--mf-primary); border-color: var(--mf-primary); background: var(--mf-primary-soft); font-weight: 600; }
+.mf-step.done { color: var(--mf-success); border-color: rgba(22,163,74,.4); background: rgba(22,163,74,.06); }
+.mf-step-sep { width: 14px; height: 1px; background: var(--mf-border); display: inline-block; }
+"""
+
+
+# ---------------------------------------------------------------------------
+# Navigation definition（Sidebar 分组 + 页面工厂）
+# ---------------------------------------------------------------------------
+# 每个条目: (group_label, [(key, 显示名, 工厂函数), ...])
+_NAV_GROUPS = [
+    ("Workspace", [
+        ("translate", "翻译", lambda s: create_pipeline_page(s["pipeline"])),
+    ]),
+    ("Project", [
+        ("projects", "项目", lambda s: create_project_page()),
+        ("history", "历史", lambda s: create_history_page(s["history"])),
+    ]),
+    ("Tools", [
+        ("debug", "调试", lambda s: create_debug_page(s["pipeline"], s["history"])),
+        ("perf", "性能监控", lambda s: create_perf_monitor_page(s["pipeline"], s["history"])),
+        ("quality", "质检报告", lambda s: create_quality_report_page()),
+        ("compare", "模型对比", lambda s: create_compare_page(s["pipeline"])),
+        ("render_lab", "Render Lab", lambda s: create_render_lab_page(s["pipeline"])),
+    ]),
+    ("ML Lab", [
+        ("annotation", "标注中心", lambda s: create_annotation_page(s["annotation"], s["dataset"], s["pipeline"])),
+        ("dataset", "数据集", lambda s: create_dataset_page(s["dataset"])),
+        ("training", "训练中心", lambda s: create_training_page(s["training"], s["dataset"], s["registry"])),
+        ("models", "模型库", lambda s: create_model_page(s["registry"], s["config"], s["pipeline"])),
+        ("evaluation", "评估面板", lambda s: create_benchmark_page(s["benchmark"])),
+    ]),
+    ("System", [
+        ("settings", "设置", lambda s: create_settings_page(s["config"])),
+    ]),
+]
+
+# key -> 显示名
+_PAGE_TITLES = {key: label for _, items in _NAV_GROUPS for key, label, _ in items}
+_DEFAULT_PAGE = "translate"
+
 
 def create_app() -> gr.Blocks:
-    config_service = GuiConfigService()
-    history_service = RunHistoryService()
-    benchmark_service = BenchmarkService()
-    pipeline_service = GuiPipelineService(history_service=history_service)
-
-    # v0.3 AI Data Lab 服务
-    annotation_service = AnnotationService()
-    dataset_service = DatasetService()
-    training_service = TrainingService()
-    registry_service = ModelRegistryService()
+    svc = {
+        "config": GuiConfigService(),
+        "history": RunHistoryService(),
+        "benchmark": BenchmarkService(),
+        "annotation": AnnotationService(),
+        "dataset": DatasetService(),
+        "training": TrainingService(),
+        "registry": ModelRegistryService(),
+    }
+    svc["pipeline"] = GuiPipelineService(history_service=svc["history"])
 
     # 后台线程预加载模型，避免首次运行时长时间无反馈
-    pipeline_service.warmup()
+    svc["pipeline"].warmup()
 
-    # Gradio 6：theme / css 改由 launch() 传入（create_app 不挂 Blocks 参数）
     with gr.Blocks(title="MangaFlow") as app:
-        # 自定义头部横幅（深色科技感，内联样式保证渲染）
-        gr.HTML(
-            """
-            <div id="mf-hero">
-              <div class="mf-hero-title">MangaFlow</div>
-              <div class="mf-hero-sub">AI 漫画翻译工作台 / 文字检测 / OCR / LLM 翻译 / 渲染回填</div>
-            </div>
-            """
+        # ---- Header ----
+        current_md = gr.HTML(
+            f'<div class="mf-header">'
+            f'<div class="mf-brand">MangaFlow<span class="mf-brand-tag"> / AI 漫画翻译工作台</span></div>'
+            f'<div class="mf-current" id="mf-current">{_PAGE_TITLES[_DEFAULT_PAGE]}</div>'
+            f'</div>'
         )
 
-        with gr.Tabs():            # ====== 信息架构：翻译 / 记录 / 设置 / 模型 / 高级 ======
-            # ① 翻译：核心工作流，唯一主 CTA
-            with gr.Tab("翻译"):
-                create_pipeline_page(pipeline_service)
+        with gr.Row():
+            # ---- Sidebar ----
+            with gr.Column(scale=0, min_width=190, elem_classes="mf-sidebar"):
+                nav_buttons: dict[str, gr.Button] = {}
+                for group, items in _NAV_GROUPS:
+                    gr.Markdown(group, elem_classes="mf-nav-group")
+                    for key, label, _ in items:
+                        cls = ["mf-nav-btn"] + (["mf-nav-active"] if key == _DEFAULT_PAGE else [])
+                        btn = gr.Button(
+                            label,
+                            elem_id=f"nav-{key}",
+                            elem_classes=cls,
+                            size="sm",
+                        )
+                        nav_buttons[key] = btn
 
-            # ② 记录：低频但重要的项目与历史
-            with gr.Tab("记录"):
-                gr.Markdown("### 项目数据 / 历史")
-                with gr.Tabs():
-                    with gr.Tab("项目数据"):
-                        create_project_page()
-                    with gr.Tab("历史"):
-                        create_history_page(history_service)
+            # ---- Main：14 个隐藏视图 ----
+            with gr.Column(scale=1, elem_classes="mf-main"):
+                views: dict[str, gr.Column] = {}
+                for group, items in _NAV_GROUPS:
+                    for key, label, factory in items:
+                        with gr.Column(visible=(key == _DEFAULT_PAGE), elem_id=f"view-{key}") as col:
+                            factory(svc)
+                            views[key] = col
 
-            # ③ 设置
-            with gr.Tab("设置"):
-                create_settings_page(config_service)
+        # ---- 导航切换（闭包绑定 key，避免创建多余 State） ----
+        nav_outputs = list(views.values()) + list(nav_buttons.values()) + [current_md]
 
-            # ④ 模型：ML 开发（有真实产出价值的训练/标注/数据集从"高级"提上来）
-            with gr.Tab("模型"):
-                gr.Markdown("### ML 模型开发\n_标注数据 -> 训练模型 -> 注册到模型库 -> 评估_")
-                with gr.Tabs():
-                    with gr.Tab("标注中心"):
-                        create_annotation_page(annotation_service, dataset_service, pipeline_service)
-                    with gr.Tab("数据集"):
-                        create_dataset_page(dataset_service)
-                    with gr.Tab("训练中心"):
-                        create_training_page(training_service, dataset_service, registry_service)
-                    with gr.Tab("模型库"):
-                        create_model_page(registry_service, config_service, pipeline_service)
-                    with gr.Tab("评估面板"):
-                        create_benchmark_page(benchmark_service)
-
-            # ⑤ 高级：纯调试 / 开发者工具
-            with gr.Tab("高级"):
-                gr.Markdown(
-                    "### 调试与分析\n"
-                    "_运行中查看单页详情、性能指标、渲染质量、模型对比等_"
+        def _go(key: str):
+            out = [gr.update(visible=(k == key)) for k in views]
+            out += [gr.update(elem_classes=["mf-nav-btn"] + (["mf-nav-active"] if k == key else [])) for k in nav_buttons]
+            out.append(
+                gr.HTML(
+                    f'<div class="mf-header">'
+                    f'<div class="mf-brand">MangaFlow<span class="mf-brand-tag"> / AI 漫画翻译工作台</span></div>'
+                    f'<div class="mf-current" id="mf-current">{_PAGE_TITLES.get(key, key)}</div>'
+                    f'</div>'
                 )
-                with gr.Tabs():
-                    with gr.Tab("调试查看器"):
-                        create_debug_page(pipeline_service, history_service)
-                    with gr.Tab("性能监控"):
-                        create_perf_monitor_page(pipeline_service, history_service)
-                    with gr.Tab("质检报告"):
-                        create_quality_report_page()
-                    with gr.Tab("模型对比"):
-                        create_compare_page(pipeline_service)
-                    with gr.Tab("Render Lab"):
-                        create_render_lab_page(pipeline_service)
+            )
+            return out
 
-        gr.Markdown(
-            "MangaFlow / 本地运行的 AI 漫画翻译工具 / 数据留在本机，译文记忆可复用",
-            elem_id="mf-footer",
-        )
+        for key, btn in nav_buttons.items():
+            def _handler(key=key):
+                return _go(key)
+            btn.click(fn=_handler, outputs=nav_outputs)
 
-    # queue()：翻译任务为长耗时生成器，启用队列后进度流式、可取消、防并发卡顿
+        gr.Markdown("MangaFlow / 本地运行的 AI 漫画翻译工具", elem_id="mf-footer")
+
+    # queue：翻译任务为长耗时生成器，启用队列后进度流式、可取消、防并发卡顿
     app.queue(default_concurrency_limit=4)
     return app
 
