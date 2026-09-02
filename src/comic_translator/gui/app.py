@@ -20,114 +20,154 @@ _THEME = None
 
 
 def _build_theme():
-    """MangaFlow 主题（Soft 变体 + 暖中性强调色）
+    """MangaFlow 主题（Soft 变体 + 青绿强调，科技感）
 
-    配色一致性锁：全站单一强调色 orange，深底文字 slate，避免紫/蓝 AI 默认。
-    形状一致性锁：全站 8px 圆角（按钮/输入/卡片/tab 选中条统一）。
+    配色一致性锁：全站单一强调色 cyan，深色工作台基调（由 CSS 强压）。
+    形状一致性锁：全站 8px 圆角。
+    深色为默认主题（科技感工作台），亮色模式保留作为可选项。
     """
     global _THEME
     if _THEME is None:
-        # 注意：Gradio 的 primary_hue 接受色相名（内置色板）或完整 Color 对象。
-        # 直接传 "orange" 即可获得内置橙色板，避免手拼 Color 参数名不匹配。
         _THEME = gr.themes.Soft(
-            primary_hue="orange",
-            secondary_hue="stone",
-            neutral_hue="stone",
+            primary_hue="cyan",
+            secondary_hue="slate",
+            neutral_hue="slate",
         )
     return _THEME
 
 
 _CSS = """
-/* ---- 字体（首选 Geist；无网时优雅回退到系统字体，含中文回退） ---- */
+/* ============================================================
+   MangaFlow 深色科技工作台皮肤
+   设计读：本地专业工具 / 冷静高信息密度 / 青绿强调
+   VARIANCE 4 / MOTION 2 / DENSITY 6
+   ============================================================ */
 :root {
   --mf-font-sans: 'Geist', 'Geist Fallback', -apple-system, BlinkMacSystemFont,
                    'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei',
                    system-ui, sans-serif;
   --mf-font-mono: 'Geist Mono', 'JetBrains Mono', ui-monospace, 'SFMono-Regular',
                    'Cascadia Code', Consolas, monospace;
-  --mf-accent: #c2410c;
-  --mf-accent-700: #9a3412;
-  --mf-accent-50: #fff7ed;
-  --mf-text: #1c1917;
-  --mf-text-sub: #57534e;
-  --mf-bg: #fafaf9;
-  --mf-bg-elev: #ffffff;
-  --mf-border: #e7e5e4;
+  --mf-accent: #22d3ee;          /* 青绿强调 */
+  --mf-accent-strong: #06b6d4;
+  --mf-accent-dim: rgba(34, 211, 238, 0.14);
+  --mf-accent-text: #0c0a09;     /* 青绿按钮上的深色文字（对比度佳） */
+  --mf-text: #e7e5e4;            /* 深色下主文字 */
+  --mf-text-sub: #a8a29e;        /* 次级文字 */
+  --mf-bg: #0c0a09;              /* 深黑底 */
+  --mf-bg-elev: #171412;         /* 提升层（卡片/输入） */
+  --mf-bg-hover: #1f1b19;        /* hover */
+  --mf-border: #2b2624;          /* 细边框 */
+  --mf-border-accent: rgba(34, 211, 238, 0.5);
   --mf-radius: 8px;
+  --mf-glow: 0 0 0 1px rgba(34,211,238,.12), 0 8px 30px rgba(0,0,0,.45);
 }
-@media (prefers-color-scheme: dark) {
-  :root {
-    --mf-accent: #fb923c;
-    --mf-accent-700: #fdba74;
-    --mf-accent-50: #431407;
-    --mf-text: #f5f5f4;
-    --mf-text-sub: #a8a29e;
-    --mf-bg: #0c0a09;
-    --mf-bg-elev: #1c1917;
-    --mf-border: #292524;
-  }
-}
-body, .gradio-container, .gr-block { font-family: var(--mf-font-sans); }
+body, .gradio-container, .gr-block { font-family: var(--mf-font-sans); color: var(--mf-text); }
 code, pre, .mono, .gr-code, kbd, samp { font-family: var(--mf-font-mono); }
 
-/* ---- 品牌头部（暖中性强调，亮/暗双模式锁） ---- */
-#mf-title { border-bottom: 2px solid var(--mf-accent); padding-bottom: 0.4rem; margin-bottom: 0.6rem; }
-#mf-title h1 { font-size: 2.2rem; margin: 0.35rem 0 0.1rem; letter-spacing: 0.5px; color: var(--mf-text); font-weight: 700; }
-#mf-tagline { color: var(--mf-text-sub); margin-top: -0.15rem; margin-bottom: 0.4rem; font-size: 1rem; }
-#mf-footer { color: var(--mf-text-sub); font-size: 0.82rem; text-align: center; margin-top: 2.4rem; }
-/* 根容器：稳定 class，明显背景 + 边框（用于验证 CSS 是否注入生效） */
+/* ---- 根容器：深色工作台底板 ---- */
 .gradio-container {
-  max-width: 1320px !important;
+  max-width: 1440px !important;
   margin: 0 auto !important;
-  padding: 0.8rem 1.2rem 1.6rem !important;
-  background: #f5f5f4 !important;
-  border: 1px solid #e7e5e4;
-  border-radius: 14px;
-  color: var(--mf-text);
-  box-shadow: 0 4px 24px rgba(0,0,0,.06);
+  padding: 1rem 1.2rem 1.8rem !important;
+  background: var(--mf-bg) !important;
+  border: 1px solid var(--mf-border);
+  border-radius: 16px;
+  box-shadow: var(--mf-glow);
 }
+
+/* ---- 自定义头部横幅（深色 + 青绿边条 + 微光） ---- */
+#mf-hero {
+  background: linear-gradient(135deg, #0c0a09 0%, #131010 55%, rgba(6,182,212,.10) 120%) !important;
+  border-radius: 12px !important;
+  border: 1px solid var(--mf-border);
+  border-left: 4px solid var(--mf-accent) !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.04);
+}
+#mf-hero .mf-hero-title { font-size: 1.8rem; font-weight: 700; letter-spacing: .5px; color: #fff; }
+#mf-hero .mf-hero-sub { color: var(--mf-text-sub); font-size: 1rem; margin-top: .15rem; }
+#mf-footer { color: var(--mf-text-sub); font-size: .82rem; text-align: center; margin-top: 2.4rem; }
 
 /* ---- 形状一致性锁：全站 8px 圆角 ---- */
 button, .gr-button, .gr-box, .gr-input, .gr-text-input, .gr-dropdown, .gr-tabs,
 .block, .gr-block, .gr-panel, .gr-form, .gr-group, .gr-accordion,
-.gap, .min, .max, .wrap, .form, .gallery, .panel { border-radius: var(--mf-radius) !important; }
-
-/* ---- 卡片化分组（仅用于真正需要层级的地方；不滥用） ---- */
-.mf-card { border: 1px solid var(--mf-border); border-radius: var(--mf-radius);
-  padding: 0.85rem 1rem 0.6rem; background: var(--mf-bg-elev);
-  margin-bottom: 0.5rem; }
-.mf-card h3 { margin: 0.05rem 0 0.55rem; font-size: 1.02rem; color: var(--mf-text); }
-.mf-card .mf-desc { color: var(--mf-text-sub); font-size: 0.9rem; margin-bottom: 0.5rem; }
-.mf-section-title h2 { margin: 0.2rem 0 0.4rem; color: var(--mf-text); }
-
-/* ---- 紧凑化：表单/输入行/分组间距收紧（Daily App 风格，py-4 ~ py-6） ---- */
-.gr-form, .gr-group, .gr-input, .gr-dropdown, .gr-box,
-.gr-row, .gr-column { gap: 0.5rem !important; }
-.gr-block, .gr-panel { padding: 0.6rem 0.8rem !important; }
-.gr-block-label, label.block-label { color: var(--mf-text) !important; font-size: 0.9rem; }
-.gr-input, .gr-text-input, .gr-dropdown { background: var(--mf-bg-elev) !important; color: var(--mf-text) !important; border-color: var(--mf-border) !important; }
-.tabs { margin-top: 0.2rem; }
-
-/* ---- 强调按钮（CTA 统一强调色 + contrast 必过 WCAG AA） ---- */
-#mf-start-btn { height: 46px !important; font-size: 1.05rem !important; font-weight: 600 !important; border-radius: var(--mf-radius) !important; background: var(--mf-accent) !important; border-color: var(--mf-accent) !important; color: #ffffff !important; }
-#mf-cancel-btn { height: 46px !important; border-radius: var(--mf-radius) !important; }
-
-/* ---- 进度与状态 ---- */
-#mf-status { font-size: 1rem; color: var(--mf-text); }
-#mf-perf { font-size: 0.92rem; color: var(--mf-text-sub); }
-
-/* ---- Tab 栏（强调条用暖中性） ---- */
-.tab-nav button.selected, .tabitem[aria-selected="true"] { border-color: var(--mf-accent) !important; color: var(--mf-accent-700) !important; }
-
-/* ---- a11y：焦点可见环 + 交互状态（WCAG AA 对比度） ---- */
-:focus-visible {
-  outline: 2px solid var(--mf-accent) !important;
-  outline-offset: 2px !important;
+.gap, .min, .max, .wrap, .form, .gallery, .panel, .gr-dataframe, .gr-slider {
   border-radius: var(--mf-radius) !important;
 }
-button:active, .gr-button:active, [role="button"]:active { transform: scale(0.98); }
-button:focus-visible, .gr-button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible { outline: 2px solid var(--mf-accent) !important; outline-offset: 2px !important; }
-::selection { background: var(--mf-accent-50); color: var(--mf-text); }
+
+/* ---- 分组/卡片：半透明深色卡片 + 细边框 ---- */
+.mf-card {
+  border: 1px solid var(--mf-border);
+  border-radius: var(--mf-radius);
+  padding: 0.85rem 1rem 0.6rem;
+  background: var(--mf-bg-elev);
+  margin-bottom: 0.5rem;
+  transition: border-color .18s ease, box-shadow .18s ease;
+}
+.mf-card:hover { border-color: var(--mf-border-accent); }
+.mf-card h3 { margin: .05rem 0 .55rem; font-size: 1.02rem; color: var(--mf-text); }
+.mf-card .mf-desc { color: var(--mf-text-sub); font-size: .9rem; margin-bottom: .5rem; }
+.mf-section-title h2 { margin: .2rem 0 .4rem; color: var(--mf-text); }
+
+/* ---- 输入/下拉/表单：深色底 + 细边框 + focus 光晕 ---- */
+.gradio-container input, .gradio-container textarea, .gradio-container select,
+.gradio-container .gr-input, .gradio-container .gr-text-input,
+.gradio-container .gr-dropdown, .gradio-container .gr-number,
+.gradio-container .gr-slider input[type=range] {
+  background: var(--mf-bg-elev) !important;
+  color: var(--mf-text) !important;
+  border: 1px solid var(--mf-border) !important;
+  border-radius: var(--mf-radius) !important;
+}
+.gradio-container input:focus, .gradio-container textarea:focus,
+.gradio-container select:focus, .gradio-container .gr-input:focus {
+  border-color: var(--mf-accent) !important;
+  box-shadow: 0 0 0 3px var(--mf-accent-dim) !important;
+  outline: none !important;
+}
+.gradio-container label, .gradio-container .block-label { color: var(--mf-text-sub) !important; font-size: .9rem; }
+
+/* ---- 按钮：深底 + 强调 hover 发光 + 按压反馈 ---- */
+.gradio-container button {
+  background: var(--mf-bg-elev) !important;
+  color: var(--mf-text) !important;
+  border: 1px solid var(--mf-border) !important;
+  border-radius: var(--mf-radius) !important;
+  transition: border-color .15s ease, box-shadow .15s ease, transform .08s ease;
+}
+.gradio-container button:hover { border-color: var(--mf-accent) !important; box-shadow: 0 0 12px var(--mf-accent-dim) !important; }
+.gradio-container button:active { transform: scale(.98); }
+.gradio-container button.primary, .gradio-container button[variant=primary],
+#mf-start-btn {
+  background: var(--mf-accent) !important;
+  color: var(--mf-accent-text) !important;
+  border: none !important;
+  font-weight: 600;
+}
+#mf-start-btn { height: 46px !important; font-size: 1.05rem !important; }
+#mf-cancel-btn { height: 46px !important; }
+
+/* ---- 紧凑化：表单/输入/分组间距（D6） ---- */
+.gradio-container .gr-form, .gradio-container .gr-group,
+.gradio-container .gr-row, .gradio-container .gr-column { gap: 0.5rem !important; }
+.gradio-container .gr-block, .gradio-container .gr-panel { padding: 0.6rem 0.8rem !important; }
+
+/* ---- 进度条：细线 + 青绿 ---- */
+.gradio-container .progress-bar, .gradio-container .gr-progress {
+  background: var(--mf-accent-strong) !important; border-radius: 999px !important;
+}
+
+/* ---- Tab 栏：选中态青绿下划线 ---- */
+.gradio-container .tab-nav button { color: var(--mf-text-sub) !important; }
+.gradio-container .tab-nav button.selected { color: var(--mf-accent) !important; border-color: var(--mf-accent) !important; }
+
+/* ---- 状态/性能文本 ---- */
+#mf-status { font-size: 1rem; color: var(--mf-text); }
+#mf-perf { font-size: .92rem; color: var(--mf-text-sub); font-family: var(--mf-font-mono); }
+
+/* ---- a11y：焦点环 + 选中文本 ---- */
+:focus-visible { outline: 2px solid var(--mf-accent) !important; outline-offset: 2px !important; }
+::selection { background: var(--mf-accent-dim); color: var(--mf-text); }
 """
 
 
@@ -186,19 +226,12 @@ def create_app() -> gr.Blocks:
 
     # Gradio 6：theme / css 改由 launch() 传入（create_app 不挂 Blocks 参数）
     with gr.Blocks(title="MangaFlow") as app:
-        # 自定义头部横幅（内联样式，保证渲染）
+        # 自定义头部横幅（深色科技感，内联样式保证渲染）
         gr.HTML(
-            f"""
-            <div id="mf-hero" style="
-                background: linear-gradient(135deg, #1c1917 0%, #292524 55%, #431407 100%);
-                border-radius: 12px;
-                padding: 1.4rem 1.6rem 1.2rem;
-                margin-bottom: 1rem;
-                color: #f5f5f4;
-                border-left: 5px solid #c2410c;
-            ">
-              <div style="font-size: 1.9rem; font-weight: 700; letter-spacing: 0.5px;">MangaFlow</div>
-              <div style="color: #d6d3d1; font-size: 1rem; margin-top: 0.2rem;">AI 漫画翻译工作台 / 文字检测 / OCR / LLM 翻译 / 渲染回填</div>
+            """
+            <div id="mf-hero">
+              <div class="mf-hero-title">MangaFlow</div>
+              <div class="mf-hero-sub">AI 漫画翻译工作台 / 文字检测 / OCR / LLM 翻译 / 渲染回填</div>
             </div>
             """
         )
