@@ -75,7 +75,17 @@ code, pre, .mono, .gr-code, kbd, samp { font-family: var(--mf-font-mono); }
 #mf-title h1 { font-size: 2.2rem; margin: 0.35rem 0 0.1rem; letter-spacing: 0.5px; color: var(--mf-text); font-weight: 700; }
 #mf-tagline { color: var(--mf-text-sub); margin-top: -0.15rem; margin-bottom: 0.4rem; font-size: 1rem; }
 #mf-footer { color: var(--mf-text-sub); font-size: 0.82rem; text-align: center; margin-top: 2.4rem; }
-.gradio-container { max-width: 1320px !important; margin: 0 auto !important; padding: 0.6rem 1.2rem 1.6rem; background: var(--mf-bg); color: var(--mf-text); }
+/* 根容器：稳定 class，明显背景 + 边框（用于验证 CSS 是否注入生效） */
+.gradio-container {
+  max-width: 1320px !important;
+  margin: 0 auto !important;
+  padding: 0.8rem 1.2rem 1.6rem !important;
+  background: #f5f5f4 !important;
+  border: 1px solid #e7e5e4;
+  border-radius: 14px;
+  color: var(--mf-text);
+  box-shadow: 0 4px 24px rgba(0,0,0,.06);
+}
 
 /* ---- 形状一致性锁：全站 8px 圆角 ---- */
 button, .gr-button, .gr-box, .gr-input, .gr-text-input, .gr-dropdown, .gr-tabs,
@@ -176,10 +186,21 @@ def create_app() -> gr.Blocks:
 
     # Gradio 6：theme / css 改由 launch() 传入（create_app 不挂 Blocks 参数）
     with gr.Blocks(title="MangaFlow") as app:
-        gr.Markdown("# 📖 MangaFlow", elem_id="mf-title")
-        gr.Markdown(
-            "_AI 漫画翻译工作台 / 文字检测 / OCR / LLM 翻译 / 渲染回填_",
-            elem_id="mf-tagline",
+        # 自定义头部横幅（内联样式，保证渲染）
+        gr.HTML(
+            f"""
+            <div id="mf-hero" style="
+                background: linear-gradient(135deg, #1c1917 0%, #292524 55%, #431407 100%);
+                border-radius: 12px;
+                padding: 1.4rem 1.6rem 1.2rem;
+                margin-bottom: 1rem;
+                color: #f5f5f4;
+                border-left: 5px solid #c2410c;
+            ">
+              <div style="font-size: 1.9rem; font-weight: 700; letter-spacing: 0.5px;">MangaFlow</div>
+              <div style="color: #d6d3d1; font-size: 1rem; margin-top: 0.2rem;">AI 漫画翻译工作台 / 文字检测 / OCR / LLM 翻译 / 渲染回填</div>
+            </div>
+            """
         )
 
         with gr.Tabs():            # ====== 信息架构：翻译 / 记录 / 设置 / 模型 / 高级 ======
