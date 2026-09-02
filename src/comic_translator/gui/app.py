@@ -182,21 +182,41 @@ def create_app() -> gr.Blocks:
             elem_id="mf-tagline",
         )
 
-        with gr.Tabs():            # ====== 主功能 Tab（普通用户常用） ======
+        with gr.Tabs():            # ====== 信息架构：翻译 / 记录 / 设置 / 模型 / 高级 ======
+            # ① 翻译：核心工作流，唯一主 CTA
             with gr.Tab("翻译"):
                 create_pipeline_page(pipeline_service)
 
-            with gr.Tab("项目数据"):
-                create_project_page()
+            # ② 记录：低频但重要的项目与历史
+            with gr.Tab("记录"):
+                gr.Markdown("### 项目数据 / 历史")
+                with gr.Tabs():
+                    with gr.Tab("项目数据"):
+                        create_project_page()
+                    with gr.Tab("历史"):
+                        create_history_page(history_service)
 
-            with gr.Tab("历史"):
-                create_history_page(history_service)
-
+            # ③ 设置
             with gr.Tab("设置"):
                 create_settings_page(config_service)
 
-            # ====== 高级工具（开发者 / 调试用） ======
-            with gr.Tab("高级工具"):
+            # ④ 模型：ML 开发（有真实产出价值的训练/标注/数据集从"高级"提上来）
+            with gr.Tab("模型"):
+                gr.Markdown("### ML 模型开发\n_标注数据 -> 训练模型 -> 注册到模型库 -> 评估_")
+                with gr.Tabs():
+                    with gr.Tab("标注中心"):
+                        create_annotation_page(annotation_service, dataset_service, pipeline_service)
+                    with gr.Tab("数据集"):
+                        create_dataset_page(dataset_service)
+                    with gr.Tab("训练中心"):
+                        create_training_page(training_service, dataset_service, registry_service)
+                    with gr.Tab("模型库"):
+                        create_model_page(registry_service, config_service, pipeline_service)
+                    with gr.Tab("评估面板"):
+                        create_benchmark_page(benchmark_service)
+
+            # ⑤ 高级：纯调试 / 开发者工具
+            with gr.Tab("高级"):
                 gr.Markdown(
                     "### 调试与分析\n"
                     "_运行中查看单页详情、性能指标、渲染质量、模型对比等_"
@@ -212,23 +232,6 @@ def create_app() -> gr.Blocks:
                         create_compare_page(pipeline_service)
                     with gr.Tab("Render Lab"):
                         create_render_lab_page(pipeline_service)
-
-                gr.Markdown(
-                    "---\n"
-                    "### ML 模型开发\n"
-                    "_标注数据 -> 训练模型 -> 注册到模型库 -> 评估_"
-                )
-                with gr.Tabs():
-                    with gr.Tab("标注中心"):
-                        create_annotation_page(annotation_service, dataset_service, pipeline_service)
-                    with gr.Tab("数据集"):
-                        create_dataset_page(dataset_service)
-                    with gr.Tab("训练中心"):
-                        create_training_page(training_service, dataset_service, registry_service)
-                    with gr.Tab("模型库"):
-                        create_model_page(registry_service, config_service, pipeline_service)
-                    with gr.Tab("评估面板"):
-                        create_benchmark_page(benchmark_service)
 
         gr.Markdown(
             "MangaFlow / 本地运行的 AI 漫画翻译工具 / 数据留在本机，译文记忆可复用",
