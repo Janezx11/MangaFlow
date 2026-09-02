@@ -1,9 +1,9 @@
-"""MangaFlow — AI 漫画翻译工作台（Gradio GUI 入口）
+"""MangaFlow / AI 漫画翻译工作台（Gradio GUI 入口）
 
 布局:
-- 主 Tab：翻译 → 项目数据 → 历史 → 设置
-- 🛠 高级工具：调试/性能/质检/模型对比/Render Lab + ML 开发
-  （标注/数据集/训练/模型库/评估）
+- 主 Tab: 翻译 / 项目数据 / 历史 / 设置
+- 高级工具: 调试/性能/质检/模型对比/Render Lab + ML 开发
+  (标注/数据集/训练/模型库/评估)
 
 用法:
   python -m comic_translator.gui.app
@@ -20,25 +20,67 @@ _THEME = None
 
 
 def _build_theme():
-    """MangaFlow 主题（Soft 变体 + 靛蓝主色）"""
+    """MangaFlow 主题（Soft 变体 + 暖中性强调色）
+
+    配色一致性锁：全站单一强调色 orange，深底文字 slate，避免紫/蓝 AI 默认。
+    形状一致性锁：全站 8px 圆角（按钮/输入/卡片/tab 选中条统一）。
+    """
     global _THEME
     if _THEME is None:
         _THEME = gr.themes.Soft(
-            primary_hue="indigo",
-            secondary_hue="blue",
-            neutral_hue="slate",
+            primary_hue=gr.themes.Color("orange", hue_500="#c2410c", hue_600="#c2410c", hue_700="#9a3412"),
+            secondary_hue="stone",
+            neutral_hue="stone",
         )
     return _THEME
 
 
 _CSS = """
-#mf-title h1 { font-size: 2.15rem; margin-bottom: 0.15rem; letter-spacing: 0.5px; }
-#mf-tagline { color: #6b7280; margin-top: -0.2rem; margin-bottom: 1rem; }
-#mf-footer { color: #9ca3af; font-size: 0.85rem; text-align: center; margin-top: 2rem; }
-.gradio-container { max-width: 1440px !important; margin: 0 auto !important; }
+/* ---- 品牌头部（暖中性强调） ---- */
+:root {
+  --mf-accent: #c2410c;
+  --mf-accent-700: #9a3412;
+  --mf-accent-50: #fff7ed;
+  --mf-text: #1c1917;
+  --mf-text-sub: #57534e;
+  --mf-bg: #fafaf9;
+  --mf-border: #e7e5e4;
+  --mf-radius: 8px;
+}
+#mf-title { border-bottom: 2px solid var(--mf-accent); padding-bottom: 0.4rem; margin-bottom: 0.6rem; }
+#mf-title h1 { font-size: 2.2rem; margin: 0.35rem 0 0.1rem; letter-spacing: 0.5px; color: var(--mf-text); font-weight: 700; }
+#mf-tagline { color: var(--mf-text-sub); margin-top: -0.15rem; margin-bottom: 0.4rem; font-size: 1rem; }
+#mf-footer { color: var(--mf-text-sub); font-size: 0.82rem; text-align: center; margin-top: 2.4rem; }
+.gradio-container { max-width: 1320px !important; margin: 0 auto !important; padding: 0.6rem 1.2rem 1.6rem; background: var(--mf-bg); }
+
+/* ---- 统一形状：8px 圆角（按钮/输入/卡片/tab） ---- */
+button, .gr-button, .gr-box, .gr-input, .gr-text-input, .gr-dropdown, .gr-tabs,
+.block, .gr-block, .gr-panel, .gr-form, .gr-group, .gr-accordion,
+.gap, .min, .max, .wrap, .form, .gallery, .panel { border-radius: var(--mf-radius) !important; }
+
+/* ---- 卡片化分组（不滥用：只用于真正需要层级的地方） ---- */
+.mf-card { border: 1px solid var(--mf-border); border-radius: var(--mf-radius);
+  padding: 0.85rem 1rem 0.6rem; background: #fff;
+  margin-bottom: 0.5rem; }
+.mf-card h3 { margin: 0.05rem 0 0.55rem; font-size: 1.02rem; color: var(--mf-text); }
+.mf-card .mf-desc { color: var(--mf-text-sub); font-size: 0.9rem; margin-bottom: 0.5rem; }
+.mf-section-title h2 { margin: 0.2rem 0 0.4rem; }
+
+/* ---- 操作按钮（CTA 统一强调色） ---- */
+#mf-start-btn { height: 46px !important; font-size: 1.05rem !important; font-weight: 600 !important; border-radius: var(--mf-radius) !important; }
+#mf-cancel-btn { height: 46px !important; border-radius: var(--mf-radius) !important; }
+
+/* ---- 进度与状态 ---- */
+#mf-status { font-size: 1rem; }
+#mf-perf { font-size: 0.92rem; }
+
+/* ---- Tab 栏（强调条用暖中性） ---- */
+.tabs { margin-top: 0.2rem; }
+.tab-nav button.selected, .tabitem[aria-selected="true"] { border-color: var(--mf-accent) !important; color: var(--mf-accent-700) !important; }
 """
 
-# 强制 localhost 绕过系统代理 — 防止 Gradio 自检和事件流被 Clash 等代理拦截
+
+# 强制 localhost 绕过系统代理 / 防止 Gradio 自检和事件流被 Clash 等代理拦截
 for var in ("NO_PROXY", "no_proxy"):
     existing = os.environ.get(var, "")
     additions = "localhost,127.0.0.1,::1"
@@ -91,31 +133,31 @@ def create_app() -> gr.Blocks:
     # 后台线程预加载模型，避免首次运行时长时间无反馈
     pipeline_service.warmup()
 
-    with gr.Blocks(title="MangaFlow", theme=_build_theme(), css=_CSS) as app:
+    # Gradio 6：theme / css 改由 launch() 传入（create_app 不挂 Blocks 参数）
+    with gr.Blocks(title="MangaFlow") as app:
         gr.Markdown("# 📖 MangaFlow", elem_id="mf-title")
         gr.Markdown(
-            "_AI 漫画翻译工作台 — 文字检测 · OCR · LLM 翻译 · 渲染回填_",
+            "_AI 漫画翻译工作台 / 文字检测 / OCR / LLM 翻译 / 渲染回填_",
             elem_id="mf-tagline",
         )
 
-        with gr.Tabs():
-            # ====== 主功能 Tab（普通用户常用） ======
-            with gr.Tab("📖 翻译"):
+        with gr.Tabs():            # ====== 主功能 Tab（普通用户常用） ======
+            with gr.Tab("翻译"):
                 create_pipeline_page(pipeline_service)
 
-            with gr.Tab("📁 项目数据"):
+            with gr.Tab("项目数据"):
                 create_project_page()
 
-            with gr.Tab("📜 历史"):
+            with gr.Tab("历史"):
                 create_history_page(history_service)
 
-            with gr.Tab("⚙️ 设置"):
+            with gr.Tab("设置"):
                 create_settings_page(config_service)
 
-            # ====== 🛠 高级工具（开发者 / 调试用） ======
-            with gr.Tab("🛠 高级工具"):
+            # ====== 高级工具（开发者 / 调试用） ======
+            with gr.Tab("高级工具"):
                 gr.Markdown(
-                    "### 🔍 调试与分析\n"
+                    "### 调试与分析\n"
                     "_运行中查看单页详情、性能指标、渲染质量、模型对比等_"
                 )
                 with gr.Tabs():
@@ -132,8 +174,8 @@ def create_app() -> gr.Blocks:
 
                 gr.Markdown(
                     "---\n"
-                    "### 🤖 ML 模型开发\n"
-                    "_标注数据 → 训练模型 → 注册到模型库 → 评估_"
+                    "### ML 模型开发\n"
+                    "_标注数据 -> 训练模型 -> 注册到模型库 -> 评估_"
                 )
                 with gr.Tabs():
                     with gr.Tab("标注中心"):
@@ -148,17 +190,19 @@ def create_app() -> gr.Blocks:
                         create_benchmark_page(benchmark_service)
 
         gr.Markdown(
-            "MangaFlow · 本地运行的 AI 漫画翻译工具 — 数据留在本机，译文记忆可复用",
+            "MangaFlow / 本地运行的 AI 漫画翻译工具 / 数据留在本机，译文记忆可复用",
             elem_id="mf-footer",
         )
 
+    # queue()：翻译任务为长耗时生成器，启用队列后进度流式、可取消、防并发卡顿
+    app.queue(default_concurrency_limit=4)
     return app
 
 
 def main():
     import argparse
 
-    parser = argparse.ArgumentParser(description="MangaFlow — AI 漫画翻译工作台")
+    parser = argparse.ArgumentParser(description="MangaFlow / AI 漫画翻译工作台")
     parser.add_argument("--port", type=int, default=7860)
     parser.add_argument("--share", action="store_true")
     parser.add_argument("--host", default="127.0.0.1")
@@ -171,6 +215,8 @@ def main():
         server_port=args.port,
         share=args.share,
         inbrowser=True,
+        theme=_build_theme(),
+        css=_CSS,
     )
 
 
