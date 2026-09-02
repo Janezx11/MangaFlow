@@ -6,10 +6,10 @@
 
 自动化的漫画/漫画图片翻译系统：给定一组漫画图片，自动完成 **文字检测 → OCR 识别 → LLM 翻译 → 原文抹除 → 译文回填渲染** 的全流程，输出翻译后的图片。
 
-> **English**: An automated **manga / comic translation pipeline** — detect text regions → OCR → LLM translate → erase original → render translated text back onto the image. Web GUI (Gradio) + CLI. Currently supports **English → Chinese** comic translation with translation memory, character consistency, and batch/resume support.
+> **English**: An automated **manga / comic translation pipeline** - detect text regions, OCR, LLM translate, erase original, render translated text back onto the image. Web GUI (Gradio) + CLI. Currently supports **English to Chinese** comic translation with translation memory, character consistency, and batch/resume support.
 
-- **CLI**：`comic-translator`（typer）—— 初始化项目、批量翻译、断点续跑、项目列表
-- **Web GUI**：Gradio（本地 `127.0.0.1:7860`）—— 翻译页、设置页、调试页、实时日志
+- **CLI**：`comic-translator`（typer） - 初始化项目、批量翻译、断点续跑、项目列表
+- **Web GUI**：Gradio（本地 `127.0.0.1:7860`） - 翻译、项目数据（术语表/角色记忆/翻译记忆管理）、历史、设置、调试/性能/质检报告、ML 模型开发（标注/数据集/训练/模型库/评估）等 15 个页面
 
 > 当前定位：**英文漫画 → 中文** 等语言对，强调批量处理、角色一致性与术语一致性。
 
@@ -41,8 +41,11 @@
 | LLM 翻译 | OpenAI 兼容 API（DeepSeek / 商汤 Sensenova）+ 本地 Ollama 双模式 |
 | 渲染回填 | OCR 掩码 + 背景修复（OpenCV / LaMa）+ 字体排版，译文画回图片 |
 | 翻译记忆 | 已有译文复用（精确匹配 + LIKE 模糊匹配 + 语义匹配） |
-| 角色一致性 | 跨页记住角色称呼与说话风格 |
-| 术语表 | 自定义术语词典（增删改查/分类），自动从译文提取专有名词 |
+| 角色一致性 | 跨页记住角色称呼与说话风格（角色数据库，WebUI 增删改查） |
+| 术语表 | 自定义术语词典（WebUI 增删改查/分类），翻译后 **LLM 自动提取专有名词真实译名** 写入（拒绝英文→英文垃圾词条） |
+| 项目管理 | 术语表 / 角色记忆 / 翻译记忆均按漫画目录（项目）隔离管理 |
+| 进度与取消 | 翻译运行中显示阶段图标与页码进度，可随时取消、防重复运行 |
+| 质检报告 | 翻译后按页聚合渲染质量 / 翻译状态，生成全局质检报告 |
 | 批处理 | 整本漫画批量处理，断点续跑（resume） |
 | 跨气泡纠错 | 自动识别被 OCR 合并的相邻气泡并拆分二次识别 |
 
@@ -159,15 +162,14 @@ translation:
 ```
 src/comic_translator/
 ├── providers/     # 可插拔能力层（文本检测/气泡/OCR/翻译/修复/渲染/QA）
-├── services/      # 业务服务层（OCR、翻译记忆、角色记忆、上下文、批处理、渲染…）
+├── services/      # 业务服务层（OCR、翻译记忆、角色记忆、术语表、上下文、批处理、渲染、质检…）
 ├── storage/       # SQLAlchemy 持久化
 ├── models/        # Pydantic 数据模型
 ├── config/        # 配置
 ├── prompts/       # LLM 提示词模板
-├── glossary/      # 术语表
 ├── cache/         # 缓存
 ├── utils/         # 依赖注入容器等
-└── gui/           # Gradio 界面
+└── gui/           # Gradio 界面（pages/ 下 15 个页面）
 ```
 
 ---
@@ -179,8 +181,7 @@ src/comic_translator/
 .\.venv310\Scripts\python.exe -m pytest tests/...  # 指定目录
 ```
 
-- 测试数量：75+ 通过（另有部分用例在受限制沙箱/临时目录权限下会报 `tmp_path` 权限错误，属环境限制非代码问题）。
-- 代码规范目标：`ruff` + `mypy`（严格模式）——详见 `pyproject.toml`。
+- 测试数量：**135 个用例通过**（`pytest`）。代码规范目标：`ruff` + `mypy`（严格模式），详见 `pyproject.toml`。
 
 ---
 
@@ -204,14 +205,14 @@ MIT License（见 `LICENSE`）。**注意**：本仓库分发的代码为 MIT，
 ## 📚 文档
 
 **用户文档**
-- `docs/architecture.md` — 系统架构
-- `docs/BUBBLE_ARCHITECTURE.md` — 气泡检测架构
-- `docs/OCR_COMPATIBILITY.md` — OCR 兼容性说明
-- `docs/BATCH_PIPELINE_DESIGN.md` — 批处理管线设计
+- `docs/architecture.md` - 系统架构
+- `docs/BUBBLE_ARCHITECTURE.md` - 气泡检测架构
+- `docs/OCR_COMPATIBILITY.md` - OCR 兼容性说明
+- `docs/BATCH_PIPELINE_DESIGN.md` - 批处理管线设计
 
 **维护者文档**
-- `CHANGELOG.md` — 变更日志
-- `PLAN.md` — 改进计划与路线图
-- `PROJECT_STATUS.md` — 项目现状与已知问题
-- `OPTIMIZATION.md` — 优化核查报告
-- `RELEASE_CHECKLIST.md` — 发布核对清单
+- `CHANGELOG.md` - 变更日志
+- `PLAN.md` - 改进计划与路线图
+- `PROJECT_STATUS.md` - 项目现状与已知问题
+- `OPTIMIZATION.md` - 优化核查报告
+- `RELEASE_CHECKLIST.md` - 发布核对清单

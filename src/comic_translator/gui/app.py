@@ -106,6 +106,16 @@ button, .gr-button, .gr-box, .gr-input, .gr-text-input, .gr-dropdown, .gr-tabs,
 
 /* ---- Tab 栏（强调条用暖中性） ---- */
 .tab-nav button.selected, .tabitem[aria-selected="true"] { border-color: var(--mf-accent) !important; color: var(--mf-accent-700) !important; }
+
+/* ---- a11y：焦点可见环 + 交互状态（WCAG AA 对比度） ---- */
+:focus-visible {
+  outline: 2px solid var(--mf-accent) !important;
+  outline-offset: 2px !important;
+  border-radius: var(--mf-radius) !important;
+}
+button:active, .gr-button:active, [role="button"]:active { transform: scale(0.98); }
+button:focus-visible, .gr-button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible { outline: 2px solid var(--mf-accent) !important; outline-offset: 2px !important; }
+::selection { background: var(--mf-accent-50); color: var(--mf-text); }
 """
 
 
