@@ -27,8 +27,10 @@ def _build_theme():
     """
     global _THEME
     if _THEME is None:
+        # 注意：Gradio 的 primary_hue 接受色相名（内置色板）或完整 Color 对象。
+        # 直接传 "orange" 即可获得内置橙色板，避免手拼 Color 参数名不匹配。
         _THEME = gr.themes.Soft(
-            primary_hue=gr.themes.Color("orange", hue_500="#c2410c", hue_600="#c2410c", hue_700="#9a3412"),
+            primary_hue="orange",
             secondary_hue="stone",
             neutral_hue="stone",
         )
