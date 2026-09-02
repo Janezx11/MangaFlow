@@ -170,39 +170,115 @@ code, pre, .mono, kbd, samp { font-family: var(--mf-font-mono); }
 /* ============================================================
    Components
    ============================================================ */
-/* 按钮层级：primary / secondary / ghost */
-.gradio-container button {
-  font-family: var(--mf-font-sans);
+
+/* ---- 原生 form 控件（checkbox/radio/range 天然 teal 染色） ---- */
+.gradio-container input[type="checkbox"],
+.gradio-container input[type="radio"] {
+  accent-color: var(--mf-primary) !important;
+  cursor: pointer;
+  width: 16px !important;
+  height: 16px !important;
+}
+/* 选中态的 wrap：用 :focus-visible 或 form 状态提示（依赖 Gradio 内部结构） */
+.gradio-container .gr-form [data-testid="checkbox"]:focus-within {
+  border-color: var(--mf-primary) !important;
+  box-shadow: 0 0 0 2px var(--mf-primary-soft) !important;
+}
+
+/* ---- Primary CTA（开始翻译）——独立 ID 强约束，不被下面规则影响 ---- */
+#mf-start-btn {
+  font-family: var(--mf-font-sans) !important;
+  background: var(--mf-primary) !important; color: #fff !important;
+  border: 1px solid var(--mf-primary) !important; font-weight: 600;
+  border-radius: var(--mf-r-sm) !important; font-size: 14px !important;
+  min-height: 36px !important;
+}
+#mf-start-btn:hover { background: var(--mf-primary-hover) !important; }
+#mf-start-btn:active { transform: scale(.98); }
+
+/* ---- Cancel（危险操作，红色 ghost） ---- */
+#mf-cancel-btn {
+  font-family: var(--mf-font-sans) !important;
+  background: transparent !important; color: var(--mf-error) !important;
+  border: 1px solid var(--mf-error) !important; font-weight: 500;
+  border-radius: var(--mf-r-sm) !important; font-size: 14px !important;
+  min-height: 36px !important;
+}
+
+/* ---- Sidebar nav 按钮（独立 elem_classes .mf-nav-btn） ---- */
+.mf-nav-btn {
+  display: block; width: 100%; text-align: left;
+  padding: 6px 10px !important; margin: 1px 0 !important;
+  font-size: 13px !important; font-weight: 500 !important;
+  color: var(--mf-text-2) !important; font-family: var(--mf-font-sans) !important;
+  background: transparent !important; border: none !important;
+  border-left: 3px solid transparent !important;
+  border-radius: var(--mf-r-sm) !important;
+  min-height: 0 !important;
+  transition: background .12s ease, color .12s ease, border-color .12s ease;
+}
+.mf-nav-btn:hover { background: var(--mf-surface) !important; color: var(--mf-text) !important; }
+.mf-nav-btn.mf-nav-active {
+  background: var(--mf-primary-soft) !important;
+  color: var(--mf-primary) !important;
+  border-left-color: var(--mf-primary) !important;
+  font-weight: 600 !important;
+}
+
+/* ---- 取消按钮：保持原有缩放反馈，**不缩放 tab 按钮**（防抖动） ---- */
+.mf-nav-btn:active, #mf-start-btn:active { transform: scale(.98); }
+.gradio-container .tab-nav button:active { transform: none !important; }
+
+/* ---- 次要按钮（scoped，不影响 checkbox/radio/原生 form 控件） ---- */
+/* 覆盖普通按钮（nav/CTA 已有独立样式，不受影响） */
+.gradio-container button:not(.tab-nav button):not([type="checkbox"]):not([type="radio"]) {
+  font-family: var(--mf-font-sans) !important;
   border-radius: var(--mf-r-sm) !important;
   font-size: 13px !important;
   min-height: 32px !important;
 }
-.gradio-container button.primary, .gradio-container button[variant=primary] {
-  background: var(--mf-primary) !important; color: #fff !important;
-  border: 1px solid var(--mf-primary) !important; font-weight: 600;
-}
-.gradio-container button.primary:hover { background: var(--mf-primary-hover) !important; }
-.gradio-container button:not(.primary) {
-  background: var(--mf-surface) !important; color: var(--mf-text) !important;
+/* 默认/secondary 按钮（白底灰字） */
+.gradio-container button:not(.tab-nav button):not([variant=primary]):not([variant=stop]):not(#mf-start-btn):not(#mf-cancel-btn):not(.mf-nav-btn) {
+  background: var(--mf-surface) !important;
+  color: var(--mf-text) !important;
   border: 1px solid var(--mf-border-strong) !important;
 }
-.gradio-container button:not(.primary):hover { background: var(--mf-surface-elev) !important; border-color: var(--mf-primary) !important; }
-.gradio-container button[variant=stop] { background: transparent !important; color: var(--mf-error) !important; border-color: var(--mf-error) !important; }
-.gradio-container button:active { transform: scale(.98); }
-/* 抖动防护：tab 类按钮不缩放 */
-.gradio-container .tab-nav button:active { transform: none !important; }
+.gradio-container button:not(.tab-nav button):not([variant=primary]):not([variant=stop]):not(#mf-start-btn):not(#mf-cancel-btn):not(.mf-nav-btn):hover {
+  background: var(--mf-surface-elev) !important;
+  border-color: var(--mf-primary) !important;
+}
 
-/* 输入/表单 */
+/* ---- 输入/表单 ---- */
 .gradio-container input, .gradio-container textarea, .gradio-container select {
   background: var(--mf-surface) !important; color: var(--mf-text) !important;
   border: 1px solid var(--mf-border) !important; border-radius: var(--mf-r-sm) !important;
   font-size: 13px !important;
+  font-family: var(--mf-font-sans) !important;
 }
 .gradio-container input:focus, .gradio-container textarea:focus, .gradio-container select:focus {
   border-color: var(--mf-primary) !important;
   box-shadow: 0 0 0 2px var(--mf-primary-soft) !important; outline: none !important;
 }
+/* Dropdown 当前选中值：focus / 有值时更明显的左边 teal 条 */
+.gradio-container .gr-dropdown:focus-within {
+  border-color: var(--mf-primary) !important;
+  box-shadow: 0 0 0 2px var(--mf-primary-soft) !important;
+}
+/* 输入 group 整体在 focused 时高亮 */
+.gradio-container .gr-input:focus-within,
+.gradio-container .gr-text-input:focus-within {
+  border-color: var(--mf-primary) !important;
+  box-shadow: 0 0 0 2px var(--mf-primary-soft) !important;
+}
 .gradio-container label { color: var(--mf-text-2) !important; font-size: 12px !important; }
+
+/* ---- Disabled 状态（按钮被禁用 / 处理中） ---- */
+.gradio-container button[disabled], .gradio-container button:disabled,
+.gradio-container input:disabled, .gradio-container textarea:disabled,
+.gradio-container select:disabled {
+  opacity: 0.5 !important;
+  cursor: not-allowed !important;
+}
 
 /* 分组/面板：紧凑密度 */
 .gradio-container .gr-group, .gradio-container .gr-form,
