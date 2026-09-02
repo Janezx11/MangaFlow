@@ -36,46 +36,75 @@ def _build_theme():
 
 
 _CSS = """
-/* ---- 品牌头部（暖中性强调） ---- */
+/* ---- 字体（首选 Geist；无网时优雅回退到系统字体，含中文回退） ---- */
 :root {
+  --mf-font-sans: 'Geist', 'Geist Fallback', -apple-system, BlinkMacSystemFont,
+                   'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei',
+                   system-ui, sans-serif;
+  --mf-font-mono: 'Geist Mono', 'JetBrains Mono', ui-monospace, 'SFMono-Regular',
+                   'Cascadia Code', Consolas, monospace;
   --mf-accent: #c2410c;
   --mf-accent-700: #9a3412;
   --mf-accent-50: #fff7ed;
   --mf-text: #1c1917;
   --mf-text-sub: #57534e;
   --mf-bg: #fafaf9;
+  --mf-bg-elev: #ffffff;
   --mf-border: #e7e5e4;
   --mf-radius: 8px;
 }
+@media (prefers-color-scheme: dark) {
+  :root {
+    --mf-accent: #fb923c;
+    --mf-accent-700: #fdba74;
+    --mf-accent-50: #431407;
+    --mf-text: #f5f5f4;
+    --mf-text-sub: #a8a29e;
+    --mf-bg: #0c0a09;
+    --mf-bg-elev: #1c1917;
+    --mf-border: #292524;
+  }
+}
+body, .gradio-container, .gr-block { font-family: var(--mf-font-sans); }
+code, pre, .mono, .gr-code, kbd, samp { font-family: var(--mf-font-mono); }
+
+/* ---- 品牌头部（暖中性强调，亮/暗双模式锁） ---- */
 #mf-title { border-bottom: 2px solid var(--mf-accent); padding-bottom: 0.4rem; margin-bottom: 0.6rem; }
 #mf-title h1 { font-size: 2.2rem; margin: 0.35rem 0 0.1rem; letter-spacing: 0.5px; color: var(--mf-text); font-weight: 700; }
 #mf-tagline { color: var(--mf-text-sub); margin-top: -0.15rem; margin-bottom: 0.4rem; font-size: 1rem; }
 #mf-footer { color: var(--mf-text-sub); font-size: 0.82rem; text-align: center; margin-top: 2.4rem; }
-.gradio-container { max-width: 1320px !important; margin: 0 auto !important; padding: 0.6rem 1.2rem 1.6rem; background: var(--mf-bg); }
+.gradio-container { max-width: 1320px !important; margin: 0 auto !important; padding: 0.6rem 1.2rem 1.6rem; background: var(--mf-bg); color: var(--mf-text); }
 
-/* ---- 统一形状：8px 圆角（按钮/输入/卡片/tab） ---- */
+/* ---- 形状一致性锁：全站 8px 圆角 ---- */
 button, .gr-button, .gr-box, .gr-input, .gr-text-input, .gr-dropdown, .gr-tabs,
 .block, .gr-block, .gr-panel, .gr-form, .gr-group, .gr-accordion,
 .gap, .min, .max, .wrap, .form, .gallery, .panel { border-radius: var(--mf-radius) !important; }
 
-/* ---- 卡片化分组（不滥用：只用于真正需要层级的地方） ---- */
+/* ---- 卡片化分组（仅用于真正需要层级的地方；不滥用） ---- */
 .mf-card { border: 1px solid var(--mf-border); border-radius: var(--mf-radius);
-  padding: 0.85rem 1rem 0.6rem; background: #fff;
+  padding: 0.85rem 1rem 0.6rem; background: var(--mf-bg-elev);
   margin-bottom: 0.5rem; }
 .mf-card h3 { margin: 0.05rem 0 0.55rem; font-size: 1.02rem; color: var(--mf-text); }
 .mf-card .mf-desc { color: var(--mf-text-sub); font-size: 0.9rem; margin-bottom: 0.5rem; }
-.mf-section-title h2 { margin: 0.2rem 0 0.4rem; }
+.mf-section-title h2 { margin: 0.2rem 0 0.4rem; color: var(--mf-text); }
 
-/* ---- 操作按钮（CTA 统一强调色） ---- */
-#mf-start-btn { height: 46px !important; font-size: 1.05rem !important; font-weight: 600 !important; border-radius: var(--mf-radius) !important; }
+/* ---- 紧凑化：表单/输入行/分组间距收紧（Daily App 风格，py-4 ~ py-6） ---- */
+.gr-form, .gr-group, .gr-input, .gr-dropdown, .gr-box,
+.gr-row, .gr-column { gap: 0.5rem !important; }
+.gr-block, .gr-panel { padding: 0.6rem 0.8rem !important; }
+.gr-block-label, label.block-label { color: var(--mf-text) !important; font-size: 0.9rem; }
+.gr-input, .gr-text-input, .gr-dropdown { background: var(--mf-bg-elev) !important; color: var(--mf-text) !important; border-color: var(--mf-border) !important; }
+.tabs { margin-top: 0.2rem; }
+
+/* ---- 强调按钮（CTA 统一强调色 + contrast 必过 WCAG AA） ---- */
+#mf-start-btn { height: 46px !important; font-size: 1.05rem !important; font-weight: 600 !important; border-radius: var(--mf-radius) !important; background: var(--mf-accent) !important; border-color: var(--mf-accent) !important; color: #ffffff !important; }
 #mf-cancel-btn { height: 46px !important; border-radius: var(--mf-radius) !important; }
 
 /* ---- 进度与状态 ---- */
-#mf-status { font-size: 1rem; }
-#mf-perf { font-size: 0.92rem; }
+#mf-status { font-size: 1rem; color: var(--mf-text); }
+#mf-perf { font-size: 0.92rem; color: var(--mf-text-sub); }
 
 /* ---- Tab 栏（强调条用暖中性） ---- */
-.tabs { margin-top: 0.2rem; }
 .tab-nav button.selected, .tabitem[aria-selected="true"] { border-color: var(--mf-accent) !important; color: var(--mf-accent-700) !important; }
 """
 
