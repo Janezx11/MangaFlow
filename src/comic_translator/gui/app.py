@@ -171,18 +171,78 @@ code, pre, .mono, kbd, samp { font-family: var(--mf-font-mono); }
    Components
    ============================================================ */
 
-/* ---- 原生 form 控件（checkbox/radio/range 天然 teal 染色） ---- */
-.gradio-container input[type="checkbox"],
+/* ============================================================
+   Checkbox（基于 Gradio 6.22 真实 DOM）
+   真实结构: label.checkbox-container > input[type=checkbox][data-testid=checkbox] + span.label-text
+   checked 仅改变 input.checked；用 CSS 伪元素自绘勾选，不依赖 Gradio Svelte 内部。
+   ============================================================ */
+.gradio-container label.checkbox-container {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  user-select: none;
+}
+/* 原生 input 视觉隐藏（保留交互），只占位不显示 */
+.gradio-container label.checkbox-container input[type="checkbox"] {
+  position: absolute;
+  opacity: 0;
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  cursor: pointer;
+  accent-color: unset; /* 不依赖 accent-color（appearance:none 时无效） */
+}
+/* 自定义方框（::before） */
+.gradio-container label.checkbox-container::before {
+  content: "";
+  width: 15px;
+  height: 15px;
+  flex: 0 0 15px;
+  box-sizing: border-box;
+  border: 1.5px solid var(--mf-border-strong);
+  border-radius: 3px;
+  background: var(--mf-surface);
+  transition: background-color 120ms ease, border-color 120ms ease, box-shadow 120ms ease;
+}
+/* checked: teal 底 + 轻微 teal 光晕 */
+.gradio-container label.checkbox-container:has(input[type="checkbox"]:checked)::before {
+  background-color: var(--mf-primary);
+  border-color: var(--mf-primary);
+  box-shadow: 0 0 0 2px var(--mf-primary-soft);
+}
+/* 勾（::after，用 CSS 画，不依赖 Unicode 字符） */
+.gradio-container label.checkbox-container:has(input[type="checkbox"]:checked)::after {
+  content: "";
+  position: absolute;
+  left: 4px;
+  top: 50%;
+  width: 6px;
+  height: 10px;
+  border: solid #fff;
+  border-width: 0 2px 2px 0;
+  transform: translateY(-60%) rotate(45deg);
+}
+/* 文字 checked 时轻微 teal emphasis */
+.gradio-container label.checkbox-container:has(input[type="checkbox"]:checked) .label-text {
+  color: var(--mf-primary);
+  font-weight: 600;
+}
+/* hover */
+.gradio-container label.checkbox-container:hover::before {
+  border-color: var(--mf-primary);
+}
+/* focus-visible: 轻微 teal 环（非强烈 glow） */
+.gradio-container label.checkbox-container:has(input[type="checkbox"]:focus-visible)::before {
+  outline: 2px solid var(--mf-primary-soft);
+  outline-offset: 2px;
+}
+
+/* ---- Radio：原生 appearance 保留，仅 teal 染色（不作为主要方案，纯保险） ---- */
 .gradio-container input[type="radio"] {
   accent-color: var(--mf-primary) !important;
   cursor: pointer;
-  width: 16px !important;
-  height: 16px !important;
-}
-/* 选中态的 wrap：用 :focus-visible 或 form 状态提示（依赖 Gradio 内部结构） */
-.gradio-container .gr-form [data-testid="checkbox"]:focus-within {
-  border-color: var(--mf-primary) !important;
-  box-shadow: 0 0 0 2px var(--mf-primary-soft) !important;
 }
 
 /* ---- Primary CTA（开始翻译）——独立 ID 强约束，不被下面规则影响 ---- */
