@@ -107,11 +107,13 @@ _CSS = """
    Global layout
    ============================================================ */
 body, .gradio-container, .gr-block { font-family: var(--mf-font-sans); color: var(--mf-text); }
+/* Full-Width Shell：占满 viewport（max-width 移除，margin 0，宽度在下方 Full-Width 段统一） */
 .gradio-container {
-  max-width: 1500px !important;
-  margin: 0 auto !important;
+  width: 100% !important;
+  max-width: none !important;
+  margin: 0 !important;
   background: var(--mf-bg) !important;
-  padding: 12px 16px 24px !important;
+  padding: 12px 20px 24px !important;
 }
 code, pre, .mono, kbd, samp { font-family: var(--mf-font-mono); }
 
@@ -405,13 +407,27 @@ code, pre, .mono, kbd, samp { font-family: var(--mf-font-mono); }
    Layout Stability（Phase 3B Stability Fix）
    统一稳定容器模式：图片固定高度 + 等比 contain，动态文本预留空间，表格限高滚动
    ============================================================ */
-/* 稳定图片容器：高度固定，图片等比 contain，不因加载改变父容器尺寸 */
+/* 稳定图片容器：外层 block 固定高度 + overflow hidden */
 .mf-img-stable {
   height: 360px !important;
   overflow: hidden;
   background: var(--mf-surface);
   border: 1px solid var(--mf-border);
   border-radius: var(--mf-r-md);
+}
+/* 关键：压住 Gradio Image 内部容器（真实 DOM: .block.mf-img-stable > .image-container
+   > .upload-container > .image-frame > img）。这些类名稳定（无 hash 依赖）。
+   上传 placeholder 和 preview 都强制占满 mf-img-stable 高度，消除 280→508 的 shift。 */
+.mf-img-stable .image-container {
+  height: 100% !important;
+  max-height: 100% !important;
+  overflow: hidden;
+}
+.mf-img-stable .upload-container,
+.mf-img-stable .image-frame {
+  height: 100% !important;
+  max-height: 100% !important;
+  overflow: hidden;
 }
 .mf-img-stable img {
   object-fit: contain !important;
@@ -424,6 +440,24 @@ code, pre, .mono, kbd, samp { font-family: var(--mf-font-mono); }
 .mf-table-fixed {
   max-height: 420px !important;
   overflow-y: auto !important;
+}
+
+/* ============================================================
+   Full-Width Shell（Phase 3B）：占满 viewport，消除外圈白底
+   ============================================================ */
+body {
+  background: var(--mf-bg) !important;
+}
+/* main 撑满剩余宽度（sidebar 固定，main flex:1） */
+.mf-main {
+  flex: 1 !important;
+  min-width: 0 !important;
+  width: auto !important;
+  padding-left: 16px !important;
+}
+/* sidebar 固定宽度 */
+.mf-sidebar {
+  flex: 0 0 200px !important;
 }
 """
 
