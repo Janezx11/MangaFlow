@@ -28,11 +28,11 @@ def _run_coro(coro):
 def create_compare_page(pipeline_service: GuiPipelineService):
     """创建模型对比标签页"""
 
-    with gr.Column():
-        gr.Markdown("## 检测模型对比")
+    with gr.Column(elem_classes="mf-page"):
+        gr.Markdown("检测模型对比", elem_classes="mf-page-title")
 
         with gr.Row():
-            image_input = gr.Image(label="上传图片", type="pil", height=300)
+            image_input = gr.Image(label="上传图片", type="pil", elem_classes="mf-img-stable")
             with gr.Column():
                 use_ctbd = gr.Checkbox(label="CTBD (文本)", value=True)
                 use_yolo = gr.Checkbox(label="YOLO11 (气泡)", value=True)
@@ -43,27 +43,27 @@ def create_compare_page(pipeline_service: GuiPipelineService):
                 )
                 run_btn = gr.Button("开始对比", variant="primary")
 
-        status_md = gr.Markdown("")
+        status_md = gr.Markdown("", elem_classes="mf-info-line")
 
         with gr.Row():
             with gr.Column():
-                gr.Markdown("### CTBD")
-                ctbd_img = gr.Image(label="CTBD 检测", height=400)
-                ctbd_info = gr.Markdown("")
+                gr.Markdown("CTBD", elem_classes="mf-desc")
+                ctbd_img = gr.Image(label="CTBD 检测", elem_classes="mf-img-stable")
+                ctbd_info = gr.Markdown("", elem_classes="mf-info-line")
             with gr.Column():
-                gr.Markdown("### YOLO11")
-                yolo_img = gr.Image(label="YOLO 检测", height=400)
-                yolo_info = gr.Markdown("")
+                gr.Markdown("YOLO11", elem_classes="mf-desc")
+                yolo_img = gr.Image(label="YOLO 检测", elem_classes="mf-img-stable")
+                yolo_info = gr.Markdown("", elem_classes="mf-info-line")
 
         with gr.Row():
             with gr.Column():
-                gr.Markdown("### LocateAnything-3B")
-                locate_img = gr.Image(label="LocateAnything 检测", height=400)
-                locate_info = gr.Markdown("")
+                gr.Markdown("LocateAnything-3B", elem_classes="mf-desc")
+                locate_img = gr.Image(label="LocateAnything 检测", elem_classes="mf-img-stable")
+                locate_info = gr.Markdown("", elem_classes="mf-info-line")
             with gr.Column():
-                gr.Markdown("### 融合结果")
-                fused_img = gr.Image(label="融合检测", height=400)
-                fused_info = gr.Markdown("")
+                gr.Markdown("融合结果", elem_classes="mf-desc")
+                fused_img = gr.Image(label="融合检测", elem_classes="mf-img-stable")
+                fused_info = gr.Markdown("", elem_classes="mf-info-line")
 
     # ---------- 逻辑 ----------
 

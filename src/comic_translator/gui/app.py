@@ -400,6 +400,31 @@ code, pre, .mono, kbd, samp { font-family: var(--mf-font-mono); }
 .mf-step.active { color: var(--mf-primary); border-color: var(--mf-primary); background: var(--mf-primary-soft); font-weight: 600; }
 .mf-step.done { color: var(--mf-success); border-color: rgba(22,163,74,.4); background: rgba(22,163,74,.06); }
 .mf-step-sep { width: 14px; height: 1px; background: var(--mf-border); display: inline-block; }
+
+/* ============================================================
+   Layout Stability（Phase 3B Stability Fix）
+   统一稳定容器模式：图片固定高度 + 等比 contain，动态文本预留空间，表格限高滚动
+   ============================================================ */
+/* 稳定图片容器：高度固定，图片等比 contain，不因加载改变父容器尺寸 */
+.mf-img-stable {
+  height: 360px !important;
+  overflow: hidden;
+  background: var(--mf-surface);
+  border: 1px solid var(--mf-border);
+  border-radius: var(--mf-r-md);
+}
+.mf-img-stable img {
+  object-fit: contain !important;
+  width: 100% !important;
+  height: 100% !important;
+}
+/* 动态信息行：预留一行高度，内容增多不撑高 */
+.mf-info-line { min-height: 22px !important; }
+/* 固定表格区域：表头固定，数据区限高滚动，长文本不撑高页面 */
+.mf-table-fixed {
+  max-height: 420px !important;
+  overflow-y: auto !important;
+}
 """
 
 

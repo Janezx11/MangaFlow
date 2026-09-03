@@ -12,8 +12,8 @@ from comic_translator.gui.services.benchmark_service import BenchmarkService
 def create_benchmark_page(benchmark_service: BenchmarkService):
     """创建评估面板标签页"""
 
-    with gr.Column():
-        gr.Markdown("## 模型评估面板")
+    with gr.Column(elem_classes="mf-page"):
+        gr.Markdown("评估面板", elem_classes="mf-page-title")
 
         with gr.Row():
             path_input = gr.Textbox(
@@ -23,22 +23,24 @@ def create_benchmark_page(benchmark_service: BenchmarkService):
             )
             reload_btn = gr.Button("重新加载", scale=1, min_width=120)
 
-        status_md = gr.Markdown("")
+        status_md = gr.Markdown("", elem_classes="mf-info-line")
 
-        gr.Markdown("### 模型汇总")
+        gr.Markdown("模型汇总", elem_classes="mf-section-title")
         summary_table = gr.Dataframe(
             headers=["模型", "页数", "总区域数", "平均置信度", "平均耗时(s)", "标签分布"],
             value=[],
             interactive=False,
-            wrap=True,
+            wrap=False,
+            elem_classes="mf-table-fixed",
         )
 
-        gr.Markdown("### 逐页明细")
+        gr.Markdown("逐页明细", elem_classes="mf-section-title")
         detail_table = gr.Dataframe(
             headers=["页码", "文件", "指标"],
             value=[],
             interactive=False,
-            wrap=True,
+            wrap=False,
+            elem_classes="mf-table-fixed",
         )
 
     # ---------- 逻辑 ----------

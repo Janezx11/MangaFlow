@@ -35,11 +35,11 @@ def _bgr_to_pil(bgr: np.ndarray) -> Image.Image:
 def create_render_lab_page(pipeline_service: GuiPipelineService):
     """创建 Render Lab 标签页"""
 
-    with gr.Column():
-        gr.Markdown("## Render Lab · 渲染质量实验室")
+    with gr.Column(elem_classes="mf-page"):
+        gr.Markdown("Render Lab", elem_classes="mf-page-title")
 
         with gr.Row():
-            image_input = gr.Image(label="选择图片", type="pil", height=300)
+            image_input = gr.Image(label="选择图片", type="pil", elem_classes="mf-img-stable")
             with gr.Column():
                 mask_provider = gr.Dropdown(
                     label="Mask Provider",
@@ -55,39 +55,39 @@ def create_render_lab_page(pipeline_service: GuiPipelineService):
                 auto_detect = gr.Checkbox(label="AI 检测文字区域", value=True)
                 run_btn = gr.Button("Run", variant="primary")
 
-        status_md = gr.Markdown("就绪")
+        status_md = gr.Markdown("就绪", elem_classes="mf-info-line")
 
         with gr.Row():
             with gr.Column():
-                gr.Markdown("### Original")
-                orig_img = gr.Image(label="原图", height=450)
+                gr.Markdown("Original", elem_classes="mf-desc")
+                orig_img = gr.Image(label="原图", elem_classes="mf-img-stable")
             with gr.Column():
-                gr.Markdown("### Mask")
-                mask_img = gr.Image(label="Mask", height=450)
+                gr.Markdown("Mask", elem_classes="mf-desc")
+                mask_img = gr.Image(label="Mask", elem_classes="mf-img-stable")
 
         with gr.Row():
             with gr.Column():
-                gr.Markdown("### Inpaint Result")
-                inpaint_img = gr.Image(label="修复结果", height=450)
+                gr.Markdown("Inpaint Result", elem_classes="mf-desc")
+                inpaint_img = gr.Image(label="修复结果", elem_classes="mf-img-stable")
             with gr.Column():
-                gr.Markdown("### Final Render")
-                final_img = gr.Image(label="最终渲染", height=450)
+                gr.Markdown("Final Render", elem_classes="mf-desc")
+                final_img = gr.Image(label="最终渲染", elem_classes="mf-img-stable")
 
         with gr.Row():
-            scores_md = gr.Markdown("**质量评分:** 未运行")
+            scores_md = gr.Markdown("**质量评分:** 未运行", elem_classes="mf-info-line")
 
         with gr.Row():
             ab_btn = gr.Button("A/B 对比: OpenCV vs LaMa", variant="secondary")
 
         with gr.Row():
             with gr.Column():
-                gr.Markdown("### A/B · OpenCV")
-                ab_opencv_img = gr.Image(label="OpenCV Inpaint", height=350)
+                gr.Markdown("A/B · OpenCV", elem_classes="mf-desc")
+                ab_opencv_img = gr.Image(label="OpenCV Inpaint", elem_classes="mf-img-stable")
             with gr.Column():
-                gr.Markdown("### A/B · LaMa")
-                ab_lama_img = gr.Image(label="LaMa Inpaint", height=350)
+                gr.Markdown("A/B · LaMa", elem_classes="mf-desc")
+                ab_lama_img = gr.Image(label="LaMa Inpaint", elem_classes="mf-img-stable")
 
-        ab_scores_md = gr.Markdown("**A/B 评分:** 未运行")
+        ab_scores_md = gr.Markdown("**A/B 评分:** 未运行", elem_classes="mf-info-line")
 
     # ---------- 逻辑 ----------
 
