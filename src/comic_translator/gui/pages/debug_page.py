@@ -104,12 +104,17 @@ def create_debug_page(
         rec = history_service.load_run(run_id)
         return rec.input_dir if rec else None
 
-    with gr.Column():
-        gr.Markdown("## 调试查看器")
+    with gr.Column(elem_classes="mf-page"):
+        gr.Markdown("调试", elem_classes="mf-page-title")
+        gr.Markdown(
+            "Debug translation pipeline results and inspect intermediate outputs.",
+            elem_classes="mf-desc",
+        )
 
+        # ---- Context Toolbar（紧凑，一行内） ----
         with gr.Row():
             source_dropdown = gr.Dropdown(
-                label="数据源",
+                label="Source",
                 choices=list_source_choices(),
                 value=MEMORY_SOURCE,
                 interactive=True,
@@ -117,80 +122,82 @@ def create_debug_page(
                 scale=2,
             )
             page_selector = gr.Dropdown(
-                label="选择页面",
+                label="Page",
                 choices=[],
                 value=None,
                 interactive=True,
                 allow_custom_value=True,
                 scale=3,
             )
-            refresh_btn = gr.Button("刷新", size="sm", scale=1, min_width=100)
+            refresh_btn = gr.Button("刷新", size="sm", scale=0, min_width=80)
+
+        # ---- Visual Debug Workspace（2×2 四图，等权） ----
+        with gr.Row():
+            with gr.Column(scale=1):
+                gr.Markdown("Original", elem_classes="mf-desc")
+                orig_img = gr.Image(label="原图", show_label=False, elem_classes="mf-debug-img")
+            with gr.Column(scale=1):
+                gr.Markdown("Detection", elem_classes="mf-desc")
+                det_img = gr.Image(label="检测区域覆盖图", show_label=False, elem_classes="mf-debug-img")
 
         with gr.Row():
-            # 左侧: 图片区域
-            with gr.Column(scale=3):
-                with gr.Row():
-                    with gr.Column():
-                        gr.Markdown("### 原图")
-                        orig_img = gr.Image(label="原图", height=420)
-                    with gr.Column():
-                        gr.Markdown("### 检测结果")
-                        det_img = gr.Image(label="检测区域覆盖图", height=420)
+            with gr.Column(scale=1):
+                gr.Markdown("OCR", elem_classes="mf-desc")
+                ocr_img = gr.Image(label="OCR 覆盖图", show_label=False, elem_classes="mf-debug-img")
+            with gr.Column(scale=1):
+                gr.Markdown("Render", elem_classes="mf-desc")
+                render_img = gr.Image(label="翻译渲染图", show_label=False, elem_classes="mf-debug-img")
 
-                with gr.Row():
-                    with gr.Column():
-                        gr.Markdown("### OCR 识别")
-                        ocr_img = gr.Image(label="OCR 覆盖图", height=420)
-                    with gr.Column():
-                        gr.Markdown("### 渲染结果")
-                        render_img = gr.Image(label="翻译渲染图", height=420)
+        # ---- Inspector（下方，紧凑，默认只开最常用项） ----
+        gr.Markdown("Inspector", elem_classes="mf-section-title")
 
-            # 右侧: Inspector 数据面板
-            with gr.Column(scale=2):
-                gr.Markdown("### Inspector · 数据详情")
+        with gr.Accordion("页面元数据", open=True):
+            meta_md = gr.Markdown("未选择页面")
 
-                with gr.Accordion("页面元数据", open=True):
-                    meta_md = gr.Markdown("未选择页面")
+        with gr.Accordion("检测区域", open=False):
+            det_table = gr.Dataframe(
+                headers=["ID", "标签", "置信度", "来源", "BBox"],
+                value=[],
+                interactive=False,
+                wrap=False,
+                elem_classes="mf-table",
+            )
 
-                with gr.Accordion("检测区域", open=False):
-                    det_table = gr.Dataframe(
-                        headers=["ID", "标签", "置信度", "来源", "BBox"],
-                        value=[],
-                        interactive=False,
-                    )
+        with gr.Accordion("OCR 文本块", open=False):
+            ocr_table = gr.Dataframe(
+                headers=["文本", "置信度"],
+                value=[],
+                interactive=False,
+                wrap=False,
+                elem_classes="mf-table",
+            )
 
-                with gr.Accordion("OCR 文本块", open=False):
-                    ocr_table = gr.Dataframe(
-                        headers=["文本", "置信度"],
-                        value=[],
-                        interactive=False,
-                    )
+        with gr.Accordion("对话 / 翻译 / 渲染", open=True):
+            dlg_table = gr.Dataframe(
+                headers=[
+                    "ID", "原文", "译文", "渲染文本",
+                    "翻译状态", "渲染状态", "不一致",
+                ],
+                value=[],
+                interactive=False,
+                wrap=False,
+                elem_classes="mf-table",
+            )
 
-                with gr.Accordion("对话 / 翻译 / 渲染", open=True):
-                    dlg_table = gr.Dataframe(
-                        headers=[
-                            "ID", "原文", "译文", "渲染文本",
-                            "翻译状态", "渲染状态", "不一致",
-                        ],
-                        value=[],
-                        interactive=False,
-                        wrap=True,
-                    )
+        with gr.Accordion("翻译完整性检查", open=True):
+            integrity_md = gr.Markdown("未选择页面")
 
-                with gr.Accordion("翻译完整性检查", open=True):
-                    integrity_md = gr.Markdown("未选择页面")
+        with gr.Row():
+            retry_failed_btn = gr.Button(
+                "重试本页失败气泡",
+                variant="secondary",
+                size="sm",
+                scale=2,
+            )
+            retry_status_md = gr.Markdown("", scale=3)
 
-                with gr.Row():
-                    retry_failed_btn = gr.Button(
-                        "🔁 重试本页失败气泡",
-                        variant="secondary",
-                        size="sm",
-                        scale=2,
-                    )
-                    retry_status_md = gr.Markdown("", scale=3)
-
-                with gr.Accordion("原始 JSON", open=False):
-                    raw_json = gr.Code(label="PageSnapshot JSON", language="json")
+        with gr.Accordion("原始 JSON（高级诊断）", open=False):
+            raw_json = gr.Code(label="PageSnapshot JSON", language="json")
 
     # ---------- 加载页面列表 ----------
 
