@@ -1,7 +1,9 @@
-from pydantic import BaseModel, Field
-from comic_translator.models.enums import ComicStyle, ProcessingStatus
-from typing import Any
 from datetime import datetime
+from typing import Any
+
+from pydantic import BaseModel, Field
+
+from comic_translator.models.enums import ComicStyle, ProcessingStatus
 
 
 class ComicMetadata(BaseModel):

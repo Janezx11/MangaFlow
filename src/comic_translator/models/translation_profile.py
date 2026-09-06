@@ -1,6 +1,8 @@
-from pydantic import BaseModel, Field
-from comic_translator.models.enums import ComicStyle
 from typing import Any
+
+from pydantic import BaseModel, Field
+
+from comic_translator.models.enums import ComicStyle
 
 
 class TranslationProfile(BaseModel):

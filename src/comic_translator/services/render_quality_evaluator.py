@@ -13,7 +13,6 @@ from dataclasses import dataclass
 
 import cv2
 import numpy as np
-from loguru import logger
 
 
 @dataclass

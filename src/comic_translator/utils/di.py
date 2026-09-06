@@ -18,39 +18,17 @@ from comic_translator.prompts.western_comic_prompt_builder import (
     WesternComicPromptBuilder,
 )
 from comic_translator.providers.ocr.base import OCRProvider
-from comic_translator.providers.qa.gemma_qa_provider import GemmaQAProvider
-from comic_translator.providers.render.opencv_render_provider import OpenCVRenderProvider
 from comic_translator.providers.translation.deepseek_translator import DeepSeekTranslator
 from comic_translator.providers.translation.qwen_translator import QwenTranslator
 from comic_translator.services.cache_service import CacheService
 from comic_translator.services.character_identity_service import CharacterIdentityService
 from comic_translator.services.character_memory_service import CharacterMemoryService
-from comic_translator.services.context_assembler import ContextAssembler
 from comic_translator.services.glossary_service import GlossaryService
 from comic_translator.services.merge_confidence_service import MergeConfidenceService
-from comic_translator.services.ocr_normalize_service import OCRNormalizeService
-from comic_translator.services.ocr_service import OCRService
-from comic_translator.services.page_summary_service import PageSummaryService
 from comic_translator.services.project_service import ProjectService
 from comic_translator.services.prompt_cache_service import PromptCacheService
-from comic_translator.services.qa_service import QAService
-from comic_translator.services.render_service import RenderService
 from comic_translator.services.semantic_tm_service import SemanticTranslationMemoryService
 from comic_translator.services.translation_memory_service import TranslationMemoryService
-from comic_translator.services.translation_service import TranslationService
-from comic_translator.services.text_normalizer import TextNormalizer
-from comic_translator.services.font_manager import FontManager
-from comic_translator.services.bubble_layout_service import BubbleLayoutService
-from comic_translator.services.shape_layout_solver import ShapeLayoutSolver
-from comic_translator.services.balanced_line_breaker import BalancedLineBreaker
-from comic_translator.services.padding_solver import PaddingSolver
-from comic_translator.services.font_size_solver import FontSizeSolver
-from comic_translator.services.optical_center_solver import OpticalCenterSolver
-from comic_translator.services.typography_service_v2 import TypographyServiceV2
-from comic_translator.services.typography_qa import TypographyQA
-from comic_translator.services.render_qa_service import RenderQAService
-from comic_translator.services.inpaint_service import InpaintService
-from comic_translator.services.background_cleaner import BackgroundCleaner
 from comic_translator.storage.database import init_db
 from comic_translator.storage.repositories import ProjectRepository
 
@@ -107,10 +85,17 @@ def create_llm_client_from_config(config: dict) -> LLMClient:
         api_cfg = _get_config_value(config, "llm.api", {})
         raw_key = api_cfg.get("api_key", "")
         api_key = _resolve_env_var(raw_key) if isinstance(raw_key, str) else raw_key
+        if not api_key:
+            # 不在此处抛错（会炸掉整个容器初始化）；由客户端在真正发请求时
+            # 给出明确报错，而不是把 "${VAR}" 字面量当 Bearer key 发出去
+            logger.warning(
+                "LLM API key is not configured (raw value: "
+                f"{raw_key!r}) — LLM 请求将失败，请设置环境变量或直接填写 api_key"
+            )
         return OpenAICompatibleClient(
             model=api_cfg.get("model", "deepseek-chat"),
             base_url=api_cfg.get("base_url", "https://api.deepseek.com"),
-            api_key=api_key or raw_key,  # 回退到原始值
+            api_key=api_key,
             timeout=api_cfg.get("timeout", 120),
             max_retries=api_cfg.get("max_retries", 5),
             rps=api_cfg.get("rps", 3.0),
@@ -152,7 +137,15 @@ def create_ocr_provider_from_config(config: dict) -> OCRProvider:
         return MangaOCRProvider()
     else:
         from comic_translator.providers.ocr.paddle_ocr_provider import PaddleOCRProvider
-        return PaddleOCRProvider()
+        # 把配置里的 lang/use_gpu 真正传给 PaddleOCR（否则 ocr.lang 配置无效）
+        use_gpu = ocr_cfg.get("use_gpu", False)
+        if not isinstance(use_gpu, bool):
+            try:
+                import torch
+                use_gpu = bool(torch.cuda.is_available())
+            except Exception:
+                use_gpu = False
+        return PaddleOCRProvider(lang=lang, use_gpu=use_gpu)
 
 
 def create_translation_provider_from_config(config: dict, llm_client: LLMClient) -> Any:
@@ -230,12 +223,6 @@ class Container:
                 self._config, "cache.providers.file.dir", "data/cache"
             )
         )
-        page_summary_service = PageSummaryService(
-            cache_dir=_get_config_value(
-                self._config, "cache.providers.file.dir", "data/cache"
-            ),
-            prompt_builder=prompt_builder,
-        )
         merge_confidence_service = MergeConfidenceService()
 
         self._instances.update(
@@ -245,82 +232,18 @@ class Container:
             translation_memory_service=translation_memory_service,
             semantic_tm_service=semantic_tm_service,
             prompt_cache_service=prompt_cache_service,
-            page_summary_service=page_summary_service,
             merge_confidence_service=merge_confidence_service,
         )
 
         # -- Providers (from config) --
+        # 注：翻译/质检/渲染路径不在此装配——核心管线（comic_translator.core）
+        # 按需懒加载各自 Provider；providers/* 保留为可独立使用的扩展点。
         ocr_provider = create_ocr_provider_from_config(self._config)
-        translation_provider = create_translation_provider_from_config(
-            self._config, llm_client
-        )
-        qa_provider = GemmaQAProvider(client=llm_client, model="gemma4:e4b")
-        render_provider = OpenCVRenderProvider()
-
         self._instances["ocr_provider"] = ocr_provider
-        self._instances["translation_provider"] = translation_provider
 
-        # -- ContextAssembler --
-        context_assembler = ContextAssembler(
-            glossary_service=glossary_service,
-            character_identity_service=character_identity_service,
-            semantic_tm_service=semantic_tm_service,
-            page_summary_service=page_summary_service,
-            prompt_builder=prompt_builder,
-        )
-        self._instances["context_assembler"] = context_assembler
-
-        # -- Services --
-        ocr_normalize_service = OCRNormalizeService()
-        ocr_service = OCRService(provider=ocr_provider, cache=cache_service)
-        translation_service = TranslationService(
-            provider=translation_provider,
-            prompt_builder=prompt_builder,
-            cache=cache_service,
-            context_assembler=context_assembler,
-            semantic_tm_service=semantic_tm_service,
-            prompt_cache_service=prompt_cache_service,
-            page_summary_service=page_summary_service,
-        )
-        qa_service = QAService(provider=qa_provider, prompt_builder=prompt_builder)
-
-        # -- RenderService 依赖（Typography Engine） --
-        text_normalizer = TextNormalizer()
-        font_manager = FontManager()
-        bubble_layout = BubbleLayoutService()
-        shape_layout_solver = ShapeLayoutSolver(bubble_layout)
-        balanced_line_breaker = BalancedLineBreaker(font_manager)
-        padding_solver = PaddingSolver()
-        font_size_solver = FontSizeSolver(font_manager, balanced_line_breaker, shape_layout_solver, padding_solver)
-        optical_center_solver = OpticalCenterSolver()
-        typography_v2 = TypographyServiceV2(
-            font_manager, bubble_layout, shape_layout_solver,
-            balanced_line_breaker, padding_solver, font_size_solver, optical_center_solver,
-        )
-        typography_qa = TypographyQA()
-        render_qa_service = RenderQAService()
-        inpaint_service = InpaintService()
-        background_cleaner = BackgroundCleaner(inpaint_service)
-
-        render_service = RenderService(
-            text_normalizer=text_normalizer,
-            font_manager=font_manager,
-            typography_v2=typography_v2,
-            typography_qa=typography_qa,
-            qa_service=render_qa_service,
-            inpaint_service=inpaint_service,
-            background_cleaner=background_cleaner,
-        )
         project_service = ProjectService(repository=ProjectRepository())
 
-        self._instances.update(
-            ocr_service=ocr_service,
-            ocr_normalize_service=ocr_normalize_service,
-            translation_service=translation_service,
-            qa_service=qa_service,
-            render_service=render_service,
-            project_service=project_service,
-        )
+        self._instances["project_service"] = project_service
 
     def _resolve_prompt_builder(self):
         style = _get_config_value(self._config, "translation.style", "western_comic")
@@ -343,14 +266,10 @@ class Container:
         """从 config.yaml 重新读取配置并重建 LLM 客户端。
 
         供 GUI 设置页保存 API key 后热更新，无需重启应用。
-        会一并重建依赖该客户端的 translation_provider。
         """
         self._config = _load_config()
         llm_client = create_llm_client_from_config(self._config)
         self._instances["llm_client"] = llm_client
-        self._instances["translation_provider"] = create_translation_provider_from_config(
-            self._config, llm_client
-        )
         logger.info("DI container: LLM client refreshed from config.yaml")
         return llm_client
 

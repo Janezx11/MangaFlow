@@ -17,7 +17,6 @@ import numpy as np
 
 if TYPE_CHECKING:
     from comic_translator.models.bubble import Bubble
-    from comic_translator.models.normalized_ocr_block import NormalizedOCRBlock
 
 
 class RegionClassifier:
@@ -121,4 +120,4 @@ class RegionClassifier:
 
 
 # Lazy import to avoid circular deps at module level
-import cv2  # noqa: E402
+import cv2

@@ -6,7 +6,6 @@ from functools import lru_cache
 from typing import TYPE_CHECKING
 
 from PIL import ImageFont
-from loguru import logger
 
 from comic_translator.models.render_models import TextLayout
 
@@ -118,7 +117,7 @@ class TextLayoutService:
             text, bbox, font_profile.font_path,
             font_profile.min_size, font_profile.max_size,
         )
-        x1, y1, x2, y2 = bbox
+        x1, _y1, x2, _y2 = bbox
         box_w = (x2 - x1) - self._pad_x * 2
         lines = self._wrap_text(text, box_w, font_profile.font_path, size)
 

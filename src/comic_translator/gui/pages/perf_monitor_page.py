@@ -43,7 +43,7 @@ def create_perf_monitor_page(
                 live_md = gr.Markdown("_无数据_")
             with gr.Column():
                 gr.Markdown("### 硬件环境")
-                gpu_md = gr.Markdown(get_gpu_info())
+                gr.Markdown(get_gpu_info())
 
         with gr.Accordion("本次运行汇总", open=True):
             summary_md = gr.Markdown("_无数据_")

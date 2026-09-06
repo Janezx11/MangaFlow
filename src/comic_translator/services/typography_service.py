@@ -16,7 +16,7 @@ from PIL import ImageDraw, ImageFont
 from comic_translator.models.render_models import FontProfile, RegionType
 
 if TYPE_CHECKING:
-    from PIL import Image
+    pass
 
 
 # ---- 字体路径检测 ----

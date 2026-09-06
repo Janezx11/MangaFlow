@@ -1,5 +1,7 @@
 # MangaFlow · 漫画翻译系统
 
+[![CI](https://github.com/Janezx11/comic-translator/actions/workflows/ci.yml/badge.svg)](https://github.com/Janezx11/comic-translator/actions/workflows/ci.yml) [![License](https://img.shields.io/badge/license-MIT-22c55e?style=flat-square)](LICENSE) [![Python](https://img.shields.io/badge/python-3.10+-3776ab?style=flat-square)](pyproject.toml) [![Version](https://img.shields.io/badge/version-0.2.0-7C3AED?style=flat-square)](CHANGELOG.md)
+
 ![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)
 ![Python](https://img.shields.io/badge/python-3.10%2B-blue)
 ![Platform](https://img.shields.io/badge/platform-Windows-lightgrey)
@@ -9,7 +11,7 @@
 > **English**: An automated **manga / comic translation pipeline** - detect text regions, OCR, LLM translate, erase original, render translated text back onto the image. Web GUI (Gradio) + CLI. Currently supports **English to Chinese** comic translation with translation memory, character consistency, and batch/resume support.
 
 - **CLI**：`comic-translator`（typer） - 初始化项目、批量翻译、断点续跑、项目列表
-- **Web GUI**：Gradio（本地 `127.0.0.1:7860`） - 翻译、项目数据（术语表/角色记忆/翻译记忆管理）、历史、设置、调试/性能/质检报告、ML 模型开发（标注/数据集/训练/模型库/评估）等 15 个页面
+- **Web GUI**：Gradio（本地 `127.0.0.1:7860`） - 翻译、项目数据（术语表/角色记忆/翻译记忆管理）、历史、设置、调试/性能/质检报告、ML 模型开发（标注/数据集/训练/模型库/评估）等 15 个页面（含精修工坊）
 
 > 当前定位：**英文漫画 → 中文** 等语言对，强调批量处理、角色一致性与术语一致性。
 
@@ -68,17 +70,26 @@ python -m comic_translator.gui.app --port 7860 --share
 
 ### 方式二：CLI
 
+CLI 与 GUI 走**同一条核心管线**（`comic_translator.core`）：文字检测 → 气泡归属 → OCR → LLM 翻译 → 原文擦除 → 译文回填渲染，直接输出翻译后的图片。
+
 ```bash
+# 0. 环境体检（依赖/模型/配置/数据目录）
+comic-translator doctor
+
 # 1. 初始化项目
 comic-translator init my_comic --input data/comics --title "My Comic"
 
-# 2. 批量翻译
+# 2. 运行完整流水线（输出翻译后的图片到 data/output/rendered）
 comic-translator run --project <project-id>
 
-# 3. 断点续跑 / 查看项目
+# 3. 断点续跑（进度按页持久化，中断后从上次完成的页继续）
 comic-translator resume <project-id>
+
+# 4. 查看项目
 comic-translator list-projects
 ```
+
+常用选项：`--start N --end M` 只翻译指定页码范围；`--output DIR` 自定义渲染输出目录；`--target-lang zh` 目标语言。
 
 （等价于 `python -m comic_translator init ...` / `python -m comic_translator run --project ...`）
 

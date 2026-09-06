@@ -3,8 +3,6 @@ from __future__ import annotations
 import json
 from typing import TYPE_CHECKING
 
-from loguru import logger
-
 from comic_translator.storage.database import get_session_local, init_db
 from comic_translator.storage.models import CharacterMemoryORM
 
@@ -175,7 +173,6 @@ class CharacterMemoryService:
         self, orm: CharacterMemoryORM, match_type: str
     ) -> CharacterMemoryEntry:
         from comic_translator.models.character_memory import (
-            CharacterMemory,
             CharacterMemoryEntry,
         )
 

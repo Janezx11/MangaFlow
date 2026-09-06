@@ -1,9 +1,11 @@
+from typing import Any
+
 from pydantic import BaseModel, Field
+
+from comic_translator.models.context import QAReport
+from comic_translator.models.glossary import GlossaryEntry
 from comic_translator.models.ocr_block import OCRBlock
 from comic_translator.models.translation_block import TranslationBlock
-from comic_translator.models.glossary import GlossaryEntry
-from comic_translator.models.context import QAReport
-from typing import Any
 
 
 class PageResult(BaseModel):

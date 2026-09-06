@@ -31,28 +31,29 @@ if _src not in sys.path:
 import gradio as gr
 from loguru import logger
 
+from comic_translator.gui.pages.annotation_page import create_annotation_page
+from comic_translator.gui.pages.benchmark_page import create_benchmark_page
+from comic_translator.gui.pages.compare_page import create_compare_page
+from comic_translator.gui.pages.dataset_page import create_dataset_page
+from comic_translator.gui.pages.debug_page import create_debug_page
+from comic_translator.gui.pages.edit_page import create_edit_page
+from comic_translator.gui.pages.history_page import create_history_page
+from comic_translator.gui.pages.model_page import create_model_page
+from comic_translator.gui.pages.perf_monitor_page import create_perf_monitor_page
+from comic_translator.gui.pages.pipeline_page import create_pipeline_page
+from comic_translator.gui.pages.project_manage_page import create_project_page
+from comic_translator.gui.pages.quality_report_page import create_quality_report_page
+from comic_translator.gui.pages.render_lab_page import create_render_lab_page
+from comic_translator.gui.pages.settings_page import create_settings_page
+from comic_translator.gui.pages.training_page import create_training_page
+from comic_translator.gui.services.annotation_service import AnnotationService
+from comic_translator.gui.services.benchmark_service import BenchmarkService
+from comic_translator.gui.services.dataset_service import DatasetService
 from comic_translator.gui.services.gui_config_service import GuiConfigService
 from comic_translator.gui.services.gui_pipeline_service import GuiPipelineService
-from comic_translator.gui.services.run_history_service import RunHistoryService
-from comic_translator.gui.services.benchmark_service import BenchmarkService
-from comic_translator.gui.services.annotation_service import AnnotationService
-from comic_translator.gui.services.dataset_service import DatasetService
-from comic_translator.gui.services.training_service import TrainingService
 from comic_translator.gui.services.model_registry_service import ModelRegistryService
-from comic_translator.gui.pages.pipeline_page import create_pipeline_page
-from comic_translator.gui.pages.debug_page import create_debug_page
-from comic_translator.gui.pages.history_page import create_history_page
-from comic_translator.gui.pages.compare_page import create_compare_page
-from comic_translator.gui.pages.benchmark_page import create_benchmark_page
-from comic_translator.gui.pages.settings_page import create_settings_page
-from comic_translator.gui.pages.annotation_page import create_annotation_page
-from comic_translator.gui.pages.dataset_page import create_dataset_page
-from comic_translator.gui.pages.training_page import create_training_page
-from comic_translator.gui.pages.model_page import create_model_page
-from comic_translator.gui.pages.render_lab_page import create_render_lab_page
-from comic_translator.gui.pages.quality_report_page import create_quality_report_page
-from comic_translator.gui.pages.project_manage_page import create_project_page
-from comic_translator.gui.pages.perf_monitor_page import create_perf_monitor_page
+from comic_translator.gui.services.run_history_service import RunHistoryService
+from comic_translator.gui.services.training_service import TrainingService
 
 # ---------------------------------------------------------------------------
 # Design Tokens（Light / Zinc + Teal）— 见 docs/UI_DESIGN_SYSTEM.md
@@ -476,6 +477,7 @@ _NAV_GROUPS = [
     ]),
     ("Tools", [
         ("debug", "调试", lambda s: create_debug_page(s["pipeline"], s["history"])),
+        ("edit", "精修", lambda s: create_edit_page(s["pipeline"], s["history"])),
         ("perf", "性能监控", lambda s: create_perf_monitor_page(s["pipeline"], s["history"])),
         ("quality", "质检报告", lambda s: create_quality_report_page()),
         ("compare", "模型对比", lambda s: create_compare_page(s["pipeline"])),
@@ -528,7 +530,7 @@ def create_app() -> gr.Blocks:
                 nav_buttons: dict[str, gr.Button] = {}
                 for group, items in _NAV_GROUPS:
                     gr.Markdown(group, elem_classes="mf-nav-group")
-                    for key, label, _ in items:
+                    for key, label, _factory in items:
                         cls = ["mf-nav-btn"] + (["mf-nav-active"] if key == _DEFAULT_PAGE else [])
                         btn = gr.Button(
                             label,
@@ -541,8 +543,8 @@ def create_app() -> gr.Blocks:
             # ---- Main：14 个隐藏视图 ----
             with gr.Column(scale=1, elem_classes="mf-main"):
                 views: dict[str, gr.Column] = {}
-                for group, items in _NAV_GROUPS:
-                    for key, label, factory in items:
+                for _group, items in _NAV_GROUPS:
+                    for key, _label, factory in items:
                         with gr.Column(visible=(key == _DEFAULT_PAGE), elem_id=f"view-{key}") as col:
                             factory(svc)
                             views[key] = col
@@ -577,6 +579,12 @@ def create_app() -> gr.Blocks:
 
 def main():
     import argparse
+
+    from comic_translator.config.settings import Settings
+    from comic_translator.utils.logging import setup_logging
+
+    settings = Settings()
+    setup_logging(level=settings.log_level, log_file=settings.log_file)
 
     parser = argparse.ArgumentParser(description="MangaFlow / AI 漫画翻译工作台")
     parser.add_argument("--port", type=int, default=7860)

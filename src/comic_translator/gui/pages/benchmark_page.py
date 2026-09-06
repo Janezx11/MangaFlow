@@ -12,37 +12,6 @@ from comic_translator.gui.services.benchmark_service import BenchmarkService
 def create_benchmark_page(benchmark_service: BenchmarkService):
     """创建评估面板标签页"""
 
-    with gr.Column(elem_classes="mf-page"):
-        gr.Markdown("评估面板", elem_classes="mf-page-title")
-
-        with gr.Row():
-            path_input = gr.Textbox(
-                label="Benchmark JSON 路径",
-                value=str(benchmark_service.json_path),
-                scale=4,
-            )
-            reload_btn = gr.Button("重新加载", scale=1, min_width=120)
-
-        status_md = gr.Markdown("", elem_classes="mf-info-line")
-
-        gr.Markdown("模型汇总", elem_classes="mf-section-title")
-        summary_table = gr.Dataframe(
-            headers=["模型", "页数", "总区域数", "平均置信度", "平均耗时(s)", "标签分布"],
-            value=[],
-            interactive=False,
-            wrap=False,
-            elem_classes="mf-table-fixed",
-        )
-
-        gr.Markdown("逐页明细", elem_classes="mf-section-title")
-        detail_table = gr.Dataframe(
-            headers=["页码", "文件", "指标"],
-            value=[],
-            interactive=False,
-            wrap=False,
-            elem_classes="mf-table-fixed",
-        )
-
     # ---------- 逻辑 ----------
 
     def reload(path: str):
@@ -85,17 +54,46 @@ def create_benchmark_page(benchmark_service: BenchmarkService):
         msg = f"加载 {len(summary)} 个模型，共 {len(detail_rows)} 页数据"
         return summary_rows, detail_rows, msg
 
+    # Gradio 6 下「构建后、启动前」对组件 .value 赋值不会进入客户端配置 ——
+    # 首屏数据必须在构造时传入。
+    if benchmark_service.exists():
+        _rows0, _detail0, _msg0 = reload(str(benchmark_service.json_path))
+    else:
+        _rows0, _detail0, _msg0 = [], [], f"未找到 benchmark JSON: {benchmark_service.json_path}"
+
+    with gr.Column(elem_classes="mf-page"):
+        gr.Markdown("评估面板", elem_classes="mf-page-title")
+
+        with gr.Row():
+            path_input = gr.Textbox(
+                label="Benchmark JSON 路径",
+                value=str(benchmark_service.json_path),
+                scale=4,
+            )
+            reload_btn = gr.Button("重新加载", scale=1, min_width=120)
+
+        status_md = gr.Markdown(_msg0, elem_classes="mf-info-line")
+
+        gr.Markdown("模型汇总", elem_classes="mf-section-title")
+        summary_table = gr.Dataframe(
+            headers=["模型", "页数", "总区域数", "平均置信度", "平均耗时(s)", "标签分布"],
+            value=_rows0,
+            interactive=False,
+            wrap=False,
+            elem_classes="mf-table-fixed",
+        )
+
+        gr.Markdown("逐页明细", elem_classes="mf-section-title")
+        detail_table = gr.Dataframe(
+            headers=["页码", "文件", "指标"],
+            value=_detail0,
+            interactive=False,
+            wrap=False,
+            elem_classes="mf-table-fixed",
+        )
+
     reload_btn.click(
         fn=reload,
         inputs=[path_input],
         outputs=[summary_table, detail_table, status_md],
     )
-
-    # 页面加载时尝试一次
-    if benchmark_service.exists():
-        rows, detail, msg = reload(str(benchmark_service.json_path))
-        summary_table.value = rows
-        detail_table.value = detail
-        status_md.value = msg
-    else:
-        status_md.value = f"未找到 benchmark JSON: {benchmark_service.json_path}"

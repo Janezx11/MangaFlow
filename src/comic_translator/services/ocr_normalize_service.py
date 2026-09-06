@@ -1,13 +1,10 @@
 from __future__ import annotations
 
-import math
 from typing import TYPE_CHECKING
 
-from loguru import logger
-
 if TYPE_CHECKING:
-    from comic_translator.models.ocr_block import OCRBlock
     from comic_translator.models.normalized_ocr_block import NormalizedOCRBlock
+    from comic_translator.models.ocr_block import OCRBlock
 
 
 class OCRNormalizeService:
@@ -62,7 +59,7 @@ class OCRNormalizeService:
         line_height = sorted(heights)[len(heights) // 2]
 
         def sort_key(block: OCRBlock) -> tuple[int, int]:
-            x1, y1, x2, y2 = block.bbox
+            x1, y1, _x2, _y2 = block.bbox
             row = int(y1 / max(line_height, 1))
             col = int(x1)
             return (row, col)

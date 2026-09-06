@@ -75,14 +75,14 @@ class BubbleInteriorService:
 
     def _compute_from_mask(self, mask: np.ndarray, polygon: list) -> SafeArea | None:
         """从 binary mask 计算 safe area"""
-        h, w = mask.shape[:2]
+        _h, _w = mask.shape[:2]
         dist = cv2.distanceTransform(mask, cv2.DIST_L2, 5)
 
         # 向内缩进 10%
         max_dist = dist.max()
         if max_dist <= 0:
             return None
-        threshold = max_dist * 0.9  # 保留 90% 的半径
+        max_dist * 0.9  # 保留 90% 的半径
         # 但至少 3px
         min_dist = max(3, int(max_dist * 0.1))
 

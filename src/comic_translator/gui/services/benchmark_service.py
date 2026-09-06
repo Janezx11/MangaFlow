@@ -44,7 +44,7 @@ class BenchmarkService:
         agg: dict[str, dict] = {}
         for page in self.load():
             sources = dict(page.get("models") or {})
-            if "fused" in page and page["fused"]:
+            if page.get("fused"):
                 sources["fused"] = page["fused"]
             for name, m in sources.items():
                 bucket = agg.setdefault(name, {
@@ -63,7 +63,7 @@ class BenchmarkService:
                         bucket["label_counts"].get(label, 0) + count
                     )
 
-        for name, bucket in agg.items():
+        for _name, bucket in agg.items():
             pages = max(bucket["pages"], 1)
             bucket["avg_confidence"] = round(bucket["conf_sum"] / pages, 3)
             bucket["avg_time_s"] = round(bucket["time_sum"] / pages, 3)

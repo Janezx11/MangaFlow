@@ -3,7 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-from comic_translator.storage.database import get_session, get_session_local, init_db
+from comic_translator.storage.database import get_session_local, init_db
 from comic_translator.storage.models import GlossaryEntryORM
 
 if TYPE_CHECKING:

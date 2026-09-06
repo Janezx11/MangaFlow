@@ -4,7 +4,7 @@
 >
 > 面向 AI/LLM 读者的完整介绍。读完本文档即可了解项目全貌、技术架构、当前状态与已知问题，**无需阅读任何源代码**。
 >
-> 生成时间：2026-08-17 ｜ 版本：v0.1.0
+> 生成时间：2026-09-06（0.2.0 产品化批次刷新） ｜ 版本：v0.1.0
 
 ---
 
@@ -138,8 +138,8 @@ src/comic_translator/
 
 | # | 问题 | 说明 |
 |---|------|------|
-| 7 | **死代码/未实现** | `OpenCVRenderProvider.render` 直接 `raise NotImplementedError`；`gemma_qa`、`semantic_tm`、`opencv_render` 共 3 处 TODO |
-| 8 | **版本约束不一致** | `requires-python >=3.10` 但 ruff/mypy 配置 `target py311`；包版本仅 0.1.0 |
+| 7 | ~~**死代码/未实现**~~ ✅ 已清理（2026-08-29） | `gui_pipeline_service.py` 已拆分（1888→853 行，翻译逻辑抽至 `gui_pipeline_translation.py`）；重复 HTTP 降级翻译路径已删；检测阶段死代码（`_merge_ocr_results`/`_resolve_cross_bubble_blocks`/`_reocr_in_bubble` 等）已删；`OpenCVRenderProvider`/`GemmaQAProvider`/`MangaOCRProvider` 保留为文档化扩展点（仍 `raise NotImplementedError`），`semantic_tm` 为部分实现 |
+| 8 | ~~**版本约束不一致**~~ ✅ 已统一 | `requires-python >=3.10` 且 ruff/mypy 现统一为 `py310`（对齐实际运行环境 3.10.20）；包版本仍 0.1.0 |
 | 9 | **pytest 配置警告** | `asyncio_mode` 报"Unknown config option"（虽测试通过） |
 | 10 | **跨平台脆弱** | GPU 依赖用「借 torch 的 CUDA DLL + `os.add_dll_directory`」的 hack；文件夹选择器仅 Windows |
 | 11 | **硬编码相对路径** | `data/comics`、`models/bubble/...` 等，对工作目录敏感 |

@@ -102,11 +102,11 @@ REGION_FONT_NAMES: dict[RegionType, list[str]] = {
 
 # 默认字体属性
 FONT_CONFIG: dict[RegionType, dict] = {
-    RegionType.DIALOGUE: dict(min_size=12, max_size=64, default_size=24, line_spacing=1.3, stroke_width=1),
-    RegionType.NARRATION: dict(min_size=10, max_size=48, default_size=18, line_spacing=1.4, stroke_width=1),
-    RegionType.TITLE: dict(min_size=20, max_size=80, default_size=36, line_spacing=1.2, stroke_width=2),
-    RegionType.SFX: dict(min_size=16, max_size=72, default_size=32, line_spacing=1.1, stroke_width=2),
-    RegionType.UNKNOWN: dict(min_size=12, max_size=64, default_size=24, line_spacing=1.3, stroke_width=1),
+    RegionType.DIALOGUE: {"min_size": 12, "max_size": 64, "default_size": 24, "line_spacing": 1.3, "stroke_width": 1},
+    RegionType.NARRATION: {"min_size": 10, "max_size": 48, "default_size": 18, "line_spacing": 1.4, "stroke_width": 1},
+    RegionType.TITLE: {"min_size": 20, "max_size": 80, "default_size": 36, "line_spacing": 1.2, "stroke_width": 2},
+    RegionType.SFX: {"min_size": 16, "max_size": 72, "default_size": 32, "line_spacing": 1.1, "stroke_width": 2},
+    RegionType.UNKNOWN: {"min_size": 12, "max_size": 64, "default_size": 24, "line_spacing": 1.3, "stroke_width": 1},
 }
 
 

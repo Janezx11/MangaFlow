@@ -36,6 +36,7 @@ ocr:
 
 # 翻译参数
 translation:
+  speaker_attribution: true
   batch_size: 20     # 每批页数
   source_lang: en
   target_lang: zh
@@ -62,13 +63,12 @@ render:
     text_ratio: 0.5
   target_lang: zh
   typography_font: comic
-  background_cleaning: false
+  # 注意：background_cleaning 已在上方设置（true），此处的重复键已移除
   fallback_to_source: false
   use_quality_service: true
 
 # 项目
 project:
   name: my_comic
-  db: data/output/project.db
   cache_dir: data/cache
   output_dir: data/output

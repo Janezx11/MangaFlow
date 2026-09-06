@@ -10,13 +10,11 @@ from comic_translator.models.batch_result import BatchInput, BatchOutput, PageTr
 from comic_translator.models.translation_block import TranslationBlock
 
 if TYPE_CHECKING:
-    from comic_translator.models.glossary import GlossaryEntry
     from comic_translator.clients.base import LLMClient
     from comic_translator.services.batch_cache import BatchCacheService
-    from comic_translator.services.batch_prompt_builder import BatchPromptBuilder
     from comic_translator.services.batch_ocr_service import BatchOCRService
+    from comic_translator.services.batch_prompt_builder import BatchPromptBuilder
     from comic_translator.services.glossary_service import GlossaryService
-    from comic_translator.storage.database import Session
 
 
 class BatchTranslationService:
@@ -88,9 +86,10 @@ class BatchTranslationService:
         ocr_source: list,
     ) -> None:
         """将翻译结果持久化到 translated_pages 表"""
+        from sqlalchemy import select
+
         from comic_translator.storage.database import get_engine, get_session
         from comic_translator.storage.models import TranslatedPageORM
-        from sqlalchemy import insert, update, select
 
         page_data = json.dumps(
             [b.model_dump(mode="json") for b in page_translation.blocks],
@@ -101,7 +100,7 @@ class BatchTranslationService:
             ensure_ascii=False,
         )
 
-        engine = get_engine(self._db_path)
+        get_engine(self._db_path)
         session_generator = get_session(self._db_path)
         session = next(session_generator)
         try:
@@ -142,6 +141,8 @@ class BatchTranslationService:
         comic_style: str = "western_comic",
         use_cache: bool = True,
         batch_delay: float = 0.0,
+        start_page: int = 1,
+        end_page: int | None = None,
     ) -> list[BatchOutput]:
         """运行完整 Batch 翻译管线
 
@@ -149,9 +150,10 @@ class BatchTranslationService:
             batch_delay: 每个批次 API 调用之间的间隔秒数。默认 0（不人为等待，
                 节奏由 LLM 客户端的令牌桶限速 + 429 退避控制）；仅在确实需要
                 规避账号级限流（429 AccountRateLimitExceeded）时手动调大。
+            start_page/end_page: 页码范围（1 基、含端点），与 CLI --start/--end 对应。
         """
 
-        logger.info(f"=== Batch Translation Pipeline ===")
+        logger.info("=== Batch Translation Pipeline ===")
         logger.info(f"Project: {project_name}, Batch size: {batch_size}")
 
         # Step 1: OCR all pages
@@ -161,6 +163,19 @@ class BatchTranslationService:
             source_lang=source_lang,
             use_cache=use_cache,
         )
+
+        # 页码范围过滤（CLI --start/--end）
+        if start_page > 1 or end_page is not None:
+            before = len(all_pages)
+            all_pages = [
+                p for p in all_pages
+                if p.page >= start_page and (end_page is None or p.page <= end_page)
+            ]
+            logger.info(
+                f"Page range filter [{start_page}, {end_page or '∞'}]: "
+                f"{before} -> {len(all_pages)} pages"
+            )
+
         if not all_pages:
             logger.error("No pages to translate")
             return []
@@ -182,7 +197,7 @@ class BatchTranslationService:
             if use_cache and self._cache.has_batch_cache(project_name, batch_index):
                 cached = self._cache.get_batch_output(project_name, batch_index)
                 if cached:
-                    logger.info(f"Batch cache hit")
+                    logger.info("Batch cache hit")
                     batch_outputs.append(BatchOutput(**cached))
                     continue
 
@@ -234,7 +249,7 @@ class BatchTranslationService:
 
             if use_cache:
                 self._cache.set_batch_output(project_name, batch_index, batch_output.model_dump(mode="json"))
-                logger.info(f"Batch cache saved")
+                logger.info("Batch cache saved")
 
             # 批次间间隔：避免连续请求触发账号级限流
             if batch_index < len(batches) and batch_delay > 0:
@@ -247,7 +262,7 @@ class BatchTranslationService:
         )
         total_glossary = self._glossary.count()
         logger.info(f"\n{'=' * 60}")
-        logger.info(f"Pipeline complete!")
+        logger.info("Pipeline complete!")
         logger.info(f"Batches: {len(batch_outputs)}")
         logger.info(f"Pages: {len(all_pages)}")
         logger.info(f"Blocks translated: {total_blocks}")
@@ -258,9 +273,10 @@ class BatchTranslationService:
 
     def get_translated_blocks(self, project_id: str) -> list[tuple[int, list[TranslationBlock]]]:
         """从 DB 读取翻译结果（用于最终输出/渲染）"""
-        from comic_translator.storage.database import get_engine, get_session
-        from comic_translator.storage.models import TranslatedPageORM
         from sqlalchemy import select
+
+        from comic_translator.storage.database import get_session
+        from comic_translator.storage.models import TranslatedPageORM
 
         result = []
         with get_session(self._db_path) as session:

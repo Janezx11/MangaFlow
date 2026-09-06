@@ -69,7 +69,7 @@ class MaskRefinementService:
             refined = cv2.morphologyEx(refined, cv2.MORPH_OPEN, kernel)
 
         # 2. 连通区域过滤
-        num_labels, labels, stats, centroids = cv2.connectedComponentsWithStats(
+        num_labels, labels, stats, _centroids = cv2.connectedComponentsWithStats(
             (refined > 0).astype(np.uint8), connectivity=8,
         )
         total_area = h * w

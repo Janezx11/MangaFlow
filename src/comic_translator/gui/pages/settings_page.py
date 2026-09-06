@@ -14,10 +14,10 @@ def create_settings_page(config_service: GuiConfigService):
     key_state = config_service.get_api_key_state()
 
     with gr.Column():
-        gr.Markdown("## 设置")
+        gr.Markdown("## 设置", elem_classes="mf-section-title")
 
         with gr.Row():
-            with gr.Column():
+            with gr.Group(elem_classes="mf-card"):
                 gr.Markdown("### 大语言模型")
                 llm_mode = gr.Dropdown(
                     label="运行模式",
@@ -43,7 +43,7 @@ def create_settings_page(config_service: GuiConfigService):
                 )
                 api_key_status = gr.Markdown(_key_status_md(key_state))
 
-            with gr.Column():
+            with gr.Group(elem_classes="mf-card"):
                 gr.Markdown("### 检测模型")
                 bubble_model = gr.Textbox(label="气泡检测模型路径", value=cfg["bubble_model"])
                 bubble_conf = gr.Slider(
@@ -52,7 +52,7 @@ def create_settings_page(config_service: GuiConfigService):
                 )
 
         with gr.Row():
-            with gr.Column():
+            with gr.Group(elem_classes="mf-card"):
                 gr.Markdown("### 翻译")
                 target_lang = gr.Dropdown(
                     label="目标语言",
@@ -65,7 +65,7 @@ def create_settings_page(config_service: GuiConfigService):
                     value=cfg["style"],
                 )
 
-            with gr.Column():
+            with gr.Group(elem_classes="mf-card"):
                 gr.Markdown("### 输出")
                 output_dir = gr.Textbox(label="输出目录", value=cfg["output_dir"])
 
@@ -75,8 +75,9 @@ def create_settings_page(config_service: GuiConfigService):
 
         status_md = gr.Markdown("")
 
-        gr.Markdown("### GPU 状态")
-        gpu_md = gr.Markdown(_get_gpu_status())
+        with gr.Group(elem_classes="mf-card"):
+            gr.Markdown("### GPU 状态")
+            gr.Markdown(_get_gpu_status())
 
     def save_config(
         bubble_model, bubble_conf, target_lang, style, output_dir,
@@ -157,7 +158,7 @@ def create_settings_page(config_service: GuiConfigService):
                 gr.update(choices=models, value=new_value),
                 f"✅ 获取到 {len(models)} 个可用模型",
             )
-        except Exception as e:  # noqa: BLE001
+        except Exception as e:
             return gr.update(), f"❌ 获取模型失败：{e}"
 
     save_btn.click(
@@ -203,7 +204,7 @@ def _refresh_llm_client() -> str:
         if refreshed is None:
             return "容器未初始化，key 将在下次运行时生效"
         return ""
-    except Exception as e:  # noqa: BLE001
+    except Exception as e:
         return f"LLM 客户端刷新失败，重启后生效（{e}）"
 
 

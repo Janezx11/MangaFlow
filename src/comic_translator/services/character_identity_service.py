@@ -3,8 +3,6 @@ from __future__ import annotations
 import json
 from typing import TYPE_CHECKING
 
-from loguru import logger
-
 from comic_translator.storage.database import get_session_local, init_db
 from comic_translator.storage.models import CharacterMemoryORM
 
@@ -147,10 +145,7 @@ class CharacterIdentityService:
         fuzzy_matches: list[tuple[CharacterMemoryORM, float]] = []
         for orm in rows:
             candidates = (
-                [orm.canonical_name]
-                + json.loads(orm.aliases or "[]")
-                + json.loads(orm.titles or "[]")
-                + json.loads(orm.nicknames or "[]")
+                [orm.canonical_name, *json.loads(orm.aliases or "[]"), *json.loads(orm.titles or "[]"), *json.loads(orm.nicknames or "[]")]
             )
             for candidate in candidates:
                 if candidate.lower().startswith(name_lower):
@@ -180,9 +175,7 @@ class CharacterIdentityService:
         results: list[CharacterIdentity] = []
         for orm in rows:
             candidates = (
-                [orm.canonical_name]
-                + json.loads(orm.aliases or "[]")
-                + json.loads(orm.titles or "[]")
+                [orm.canonical_name, *json.loads(orm.aliases or "[]"), *json.loads(orm.titles or "[]")]
             )
             if any(q in c.lower() for c in candidates):
                 results.append(self._orm_to_model(orm))

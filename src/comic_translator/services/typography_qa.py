@@ -153,7 +153,7 @@ class TypographyQA:
         if layout.line_count <= 1:
             return (1.0, issues)
 
-        widths = [l.width for l in layout.lines]
+        widths = [line.width for line in layout.lines]
         if not widths:
             return (0.5, issues)
 

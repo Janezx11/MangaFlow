@@ -5,6 +5,7 @@ No global singleton — supports multiple databases for testing.
 """
 
 from pathlib import Path
+
 from sqlalchemy import create_engine, inspect, text
 from sqlalchemy.orm import DeclarativeBase, sessionmaker
 

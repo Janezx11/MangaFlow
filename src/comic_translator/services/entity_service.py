@@ -2,13 +2,12 @@
 
 from __future__ import annotations
 
-import json
 from typing import TYPE_CHECKING
 
 from loguru import logger
 
 if TYPE_CHECKING:
-    from sqlalchemy.orm import Session
+    pass
 
 
 class EntityService:
@@ -35,9 +34,9 @@ class EntityService:
         project_id: str = "",
     ) -> int:
         """批量记录实体，已有实体增加频次"""
-        from comic_translator.storage.database import get_engine
-        from comic_translator.storage.models import EntityORM
         from sqlalchemy import select
+
+        from comic_translator.storage.models import EntityORM
 
         count = 0
         session_gen = self._get_session()
@@ -74,9 +73,9 @@ class EntityService:
 
     def get_all_entities(self) -> list[dict]:
         """获取所有实体（按频次降序）"""
-        from comic_translator.storage.database import get_engine
-        from comic_translator.storage.models import EntityORM
         from sqlalchemy import select
+
+        from comic_translator.storage.models import EntityORM
 
         session_gen = self._get_session()
         session = next(session_gen)

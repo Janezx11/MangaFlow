@@ -1,0 +1,310 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "comic-translator 核心管线架构（CLI + GUI 共用）",
+    "locale": "zh-CN",
+    "quality_profile": "showcase"
+  },
+  "components": [
+    {
+      "id": "cli",
+      "type": "frontend",
+      "label": "CLI",
+      "sublabel": "comic-translator run / resume",
+      "pos": [
+        270,
+        90
+      ],
+      "size": [
+        160,
+        64
+      ]
+    },
+    {
+      "id": "gui",
+      "type": "frontend",
+      "label": "Gradio GUI MangaFlow",
+      "sublabel": "14 个工作区页面",
+      "pos": [
+        500,
+        90
+      ],
+      "size": [
+        170,
+        64
+      ]
+    },
+    {
+      "id": "pipeline",
+      "type": "backend",
+      "label": "ComicPipelineService",
+      "sublabel": "comic_translator.core 共用管线",
+      "pos": [
+        495,
+        220
+      ],
+      "size": [
+        180,
+        68
+      ],
+      "tag": "core/"
+    },
+    {
+      "id": "sqlite",
+      "type": "database",
+      "label": "SQLite 项目数据",
+      "sublabel": "术语表 / TM / 角色 / 历史",
+      "pos": [
+        730,
+        220
+      ],
+      "size": [
+        170,
+        64
+      ]
+    },
+    {
+      "id": "detect",
+      "type": "backend",
+      "label": "文字检测",
+      "sublabel": "CTBD + YOLO11 气泡",
+      "pos": [
+        40,
+        350
+      ],
+      "size": [
+        160,
+        64
+      ]
+    },
+    {
+      "id": "ocr",
+      "type": "backend",
+      "label": "OCR",
+      "sublabel": "EasyOCR / Paddle / MangaOCR",
+      "pos": [
+        270,
+        350
+      ],
+      "size": [
+        170,
+        64
+      ]
+    },
+    {
+      "id": "translate",
+      "type": "backend",
+      "label": "LLM 翻译",
+      "sublabel": "DeepSeek / Qwen Provider",
+      "pos": [
+        500,
+        350
+      ],
+      "size": [
+        170,
+        64
+      ]
+    },
+    {
+      "id": "render",
+      "type": "backend",
+      "label": "渲染",
+      "sublabel": "RenderQualityService 排版/擦除",
+      "pos": [
+        730,
+        350
+      ],
+      "size": [
+        170,
+        64
+      ]
+    },
+    {
+      "id": "output",
+      "type": "external",
+      "label": "翻译后图片",
+      "sublabel": "page_N_translated.png",
+      "pos": [
+        960,
+        350
+      ],
+      "size": [
+        160,
+        64
+      ]
+    },
+    {
+      "id": "llm",
+      "type": "external",
+      "label": "LLM 后端",
+      "sublabel": "Ollama / OpenAI 兼容 API",
+      "pos": [
+        500,
+        530
+      ],
+      "size": [
+        170,
+        64
+      ]
+    },
+    {
+      "id": "quality",
+      "type": "backend",
+      "label": "QualityOrchestrator",
+      "sublabel": "质检闭环",
+      "pos": [
+        730,
+        530
+      ],
+      "size": [
+        170,
+        64
+      ]
+    },
+    {
+      "id": "report",
+      "type": "database",
+      "label": "质检报告",
+      "sublabel": "quality_report.json",
+      "pos": [
+        960,
+        530
+      ],
+      "size": [
+        160,
+        64
+      ]
+    }
+  ],
+  "boundaries": [
+    {
+      "kind": "region",
+      "label": "管线阶段 · core/pipeline.py",
+      "wraps": [
+        "detect",
+        "ocr",
+        "translate",
+        "render"
+      ],
+      "pad": 18
+    }
+  ],
+  "connections": [
+    {
+      "id": "cli-to-pipeline",
+      "from": "cli",
+      "to": "pipeline",
+      "label": "run / resume",
+      "variant": "emphasis",
+      "fromSide": "right",
+      "toSide": "left",
+      "route": "orthogonal-h"
+    },
+    {
+      "id": "gui-to-pipeline",
+      "from": "gui",
+      "to": "pipeline",
+      "label": "run_pipeline 生成器",
+      "variant": "emphasis",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "labelDy": 24
+    },
+    {
+      "id": "pipeline-to-sqlite",
+      "from": "pipeline",
+      "to": "sqlite",
+      "label": "术语表 / TM / 角色读写",
+      "labelDy": -28
+    },
+    {
+      "id": "pipeline-to-detect",
+      "from": "pipeline",
+      "to": "detect",
+      "label": "逐页调度",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "route": "orthogonal-v"
+    },
+    {
+      "id": "detect-to-ocr",
+      "from": "detect",
+      "to": "ocr",
+      "label": "文本区域"
+    },
+    {
+      "id": "ocr-to-translate",
+      "from": "ocr",
+      "to": "translate",
+      "label": "对话块"
+    },
+    {
+      "id": "translate-to-render",
+      "from": "translate",
+      "to": "render",
+      "label": "译文"
+    },
+    {
+      "id": "render-to-output",
+      "from": "render",
+      "to": "output",
+      "label": "page_N_translated.png",
+      "labelDy": 56
+    },
+    {
+      "id": "translate-to-llm",
+      "from": "translate",
+      "to": "llm",
+      "label": "temperature=0 批量请求",
+      "labelDy": 24
+    },
+    {
+      "id": "render-to-quality",
+      "from": "render",
+      "to": "quality",
+      "label": "render_debug.json",
+      "labelDy": 24
+    },
+    {
+      "id": "quality-to-translate",
+      "from": "quality",
+      "to": "translate",
+      "label": "失败页 LLM 逐气泡重试",
+      "variant": "dashed"
+    },
+    {
+      "id": "quality-to-report",
+      "from": "quality",
+      "to": "report",
+      "label": "聚合保存",
+      "labelDy": 56
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "单一核心管线",
+      "items": [
+        "CLI 与 GUI 消费同一个 run_pipeline 生成器",
+        "页码范围保留全列表编号，resume 与全量输出一致"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "质检闭环",
+      "items": [
+        "只自动重试 failed 翻译气泡的页",
+        "重渲染后重新聚合，产出合格率前后对比"
+      ]
+    },
+    {
+      "dot": "rose",
+      "title": "数据与上下文",
+      "items": [
+        "SQLite 按项目隔离术语表/TM/角色",
+        "LLM 后端经 DI 容器切换 Ollama 或 API"
+      ]
+    }
+  ]
+}

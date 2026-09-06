@@ -1,9 +1,8 @@
 from __future__ import annotations
 
-import math
 from typing import TYPE_CHECKING
 
-from comic_translator.models.merge_decision import MergeDecision, MERGE_THRESHOLD
+from comic_translator.models.merge_decision import MERGE_THRESHOLD, MergeDecision
 
 if TYPE_CHECKING:
     from comic_translator.models.ocr_block import OCRBlock
@@ -122,7 +121,7 @@ class MergeConfidenceService:
         # Comma/连词结尾 = 很可能需要合并
         continuers = {",", "，", "、", "and", "or", "the", "a", "an"}
         last_word = text.split()[-1].lower() if text.split() else ""
-        if last_char in {",", "，", "、"}:  # noqa: F821
+        if last_char in {",", "，", "、"}:
             return 0.9
         if last_word in continuers:
             return 0.8

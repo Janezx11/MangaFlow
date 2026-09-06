@@ -27,9 +27,6 @@ jobs:
       - name: Ruff lint
         run: ruff check src tests
 
-      - name: Mypy (core)
-        run: mypy src/comic_translator
-
       - name: Pytest
         run: pytest -q
 

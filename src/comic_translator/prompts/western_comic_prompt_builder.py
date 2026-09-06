@@ -6,8 +6,8 @@ from comic_translator.models.translation_profile import WESTERN_COMIC_PROFILE
 from comic_translator.prompts.base import PromptBuilder
 
 if TYPE_CHECKING:
-    from comic_translator.models.translation_block import TranslationBlock
     from comic_translator.models.context import TranslationContext
+    from comic_translator.models.translation_block import TranslationBlock
 
 
 class WesternComicPromptBuilder(PromptBuilder):

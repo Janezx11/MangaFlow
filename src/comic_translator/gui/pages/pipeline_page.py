@@ -12,9 +12,10 @@
 
 from __future__ import annotations
 
+from pathlib import Path
+
 import gradio as gr
 import yaml
-from pathlib import Path
 
 from comic_translator.gui.components.dir_scanner import scan_image_dirs
 from comic_translator.gui.components.perf_format import format_perf_md
@@ -73,6 +74,7 @@ _PIPELINE_STEPS = [
     ("ocr", "OCR"),
     ("translation", "翻译"),
     ("render", "渲染"),
+    ("quality", "质检"),
     ("done", "完成"),
 ]
 
@@ -82,7 +84,7 @@ def _pipeline_steps_md(stage: str) -> str:
     order = [s for s, _ in _PIPELINE_STEPS]
     idx = order.index(stage) if stage in order else -1
     cells = []
-    for i, (key, label) in enumerate(_PIPELINE_STEPS):
+    for i, (_key, label) in enumerate(_PIPELINE_STEPS):
         if idx == -1:
             cls = ""
         elif i < idx:
@@ -274,7 +276,8 @@ def create_pipeline_page(pipeline_service: GuiPipelineService):
             target_lang, mask_provider, inpaint_provider, typography_font,
             background_cleaning, fallback_to_source, out_dir,
             bubble_aware, split_strategy, cross_threshold,
-            allowed_levels, progress=gr.Progress()):
+            allowed_levels, progress=gr.Progress(),  # noqa: B008 — Gradio 官方注入模式
+        ):
         """执行流水线并流式更新日志 + 预览"""
         input_dir = (input_dir_value or "").strip()
         if not input_dir:
@@ -301,6 +304,7 @@ def create_pipeline_page(pipeline_service: GuiPipelineService):
             "ocr": "文字识别",
             "translation": "翻译",
             "render": "渲染",
+            "quality": "质检",
             "done": "完成",
         }
 
@@ -412,6 +416,12 @@ def create_pipeline_page(pipeline_service: GuiPipelineService):
 
     # 取消：终止进行中的翻译生成器，并复位按钮状态
     def _on_cancel():
+        # 请求管线优雅停止（producer 不再处理剩余页），
+        # cancels=[start_event] 只关闭生成器，不管后台线程
+        try:
+            pipeline_service.cancel_run()
+        except Exception:
+            pass
         return gr.update(interactive=True), gr.update(visible=False, interactive=False)
 
     cancel_btn.click(

@@ -1,0 +1,234 @@
+{
+  "schema_version": 2,
+  "diagram_type": "workflow",
+  "meta": {
+    "title": "质检闭环 · 不合格页自动重试",
+    "locale": "zh-CN",
+    "quality_profile": "showcase"
+  },
+  "lanes": [
+    {
+      "id": "quality",
+      "label": "质检闭环编排"
+    },
+    {
+      "id": "human",
+      "label": "人工审核",
+      "variant": "exception"
+    },
+    {
+      "id": "llm",
+      "label": "LLM 翻译"
+    },
+    {
+      "id": "render",
+      "label": "渲染服务"
+    }
+  ],
+  "phases": [
+    {
+      "id": "intake",
+      "label": "跑完 + 聚合",
+      "fromCol": 0,
+      "toCol": 1
+    },
+    {
+      "id": "decide",
+      "label": "筛选判定",
+      "fromCol": 2,
+      "toCol": 2,
+      "variant": "emphasis"
+    },
+    {
+      "id": "retry",
+      "label": "重试 + 重渲染",
+      "fromCol": 3,
+      "toCol": 3
+    },
+    {
+      "id": "output",
+      "label": "重聚合 + 输出",
+      "fromCol": 4,
+      "toCol": 5
+    }
+  ],
+  "groups": [
+    {
+      "id": "retry_loop",
+      "label": "逐候选页循环",
+      "lane": "render",
+      "fromCol": 2,
+      "toCol": 3,
+      "variant": "dashed"
+    },
+    {
+      "id": "manual_review",
+      "label": "人工复核路径",
+      "lane": "human",
+      "fromCol": 3,
+      "toCol": 4,
+      "variant": "security"
+    }
+  ],
+  "mainPath": [
+    "done",
+    "aggregate",
+    "select",
+    "retry_llm",
+    "rerender",
+    "reaggregate",
+    "report_out"
+  ],
+  "nodes": [
+    {
+      "id": "done",
+      "lane": "quality",
+      "col": 0,
+      "type": "backend",
+      "label": "管线跑完",
+      "sublabel": "全部页渲染 + render_debug 落盘",
+      "width": 170
+    },
+    {
+      "id": "report_out",
+      "lane": "quality",
+      "col": 5,
+      "type": "database",
+      "label": "质检报告落盘",
+      "sublabel": "quality_report.json",
+      "width": 170
+    },
+    {
+      "id": "aggregate",
+      "lane": "quality",
+      "col": 1,
+      "type": "backend",
+      "label": "聚合质检报告",
+      "sublabel": "读 _debug/page_* 数据",
+      "width": 170
+    },
+    {
+      "id": "select",
+      "lane": "quality",
+      "col": 2,
+      "type": "backend",
+      "label": "筛选重试候选",
+      "sublabel": "needs_retry + failed 气泡",
+      "tag": "保守策略",
+      "width": 170
+    },
+    {
+      "id": "reaggregate",
+      "lane": "quality",
+      "col": 4,
+      "type": "backend",
+      "label": "重新聚合",
+      "sublabel": "合格率前后对比",
+      "width": 170
+    },
+    {
+      "id": "retry_llm",
+      "lane": "llm",
+      "col": 3,
+      "type": "messagebus",
+      "label": "LLM 逐气泡重试",
+      "sublabel": "失败翻译重试",
+      "width": 200
+    },
+    {
+      "id": "rerender",
+      "lane": "render",
+      "col": 3,
+      "type": "backend",
+      "label": "重渲染该页",
+      "sublabel": "更新 render_debug.json",
+      "width": 200
+    },
+    {
+      "id": "manual",
+      "lane": "human",
+      "col": 3,
+      "type": "security",
+      "label": "标注人工复核",
+      "sublabel": "纯渲染质量问题不重试",
+      "width": 200
+    }
+  ],
+  "edges": [
+    {
+      "id": "done-to-aggregate",
+      "from": "done",
+      "to": "aggregate",
+      "label": "全部页完成",
+      "variant": "emphasis"
+    },
+    {
+      "id": "aggregate-to-select",
+      "from": "aggregate",
+      "to": "select",
+      "label": "needs_retry?",
+      "variant": "emphasis"
+    },
+    {
+      "id": "select-to-retry",
+      "from": "select",
+      "to": "retry_llm",
+      "label": "有 failed 气泡",
+      "variant": "emphasis"
+    },
+    {
+      "id": "select-to-manual",
+      "from": "select",
+      "to": "manual",
+      "label": "纯渲染质量问题",
+      "variant": "security",
+      "role": "branch"
+    },
+    {
+      "id": "retry-to-rerender",
+      "from": "retry_llm",
+      "to": "rerender",
+      "label": "译文修复",
+      "variant": "emphasis"
+    },
+    {
+      "id": "rerender-to-select",
+      "from": "rerender",
+      "to": "select",
+      "label": "下一候选页",
+      "role": "return"
+    },
+    {
+      "id": "rerender-to-reaggregate",
+      "from": "rerender",
+      "to": "reaggregate",
+      "label": "全部候选完成",
+      "variant": "emphasis"
+    },
+    {
+      "id": "reaggregate-to-report",
+      "from": "reaggregate",
+      "to": "report_out",
+      "label": "合格率对比",
+      "variant": "emphasis"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "闭环契约",
+      "items": [
+        "只自动重试 failed 翻译气泡的页",
+        "纯渲染质量问题标注人工复核，不浪费 LLM 调用"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "产出",
+      "items": [
+        "重聚合后输出 合格率 X% → Y%",
+        "报告落盘 quality_report.json，GUI/CLI 实时可见"
+      ]
+    }
+  ]
+}

@@ -4,8 +4,7 @@ from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from comic_translator.models.normalized_ocr_block import NormalizedOCRBlock
-    from comic_translator.models.typography_models import SafeArea
+    pass
 
 
 @dataclass

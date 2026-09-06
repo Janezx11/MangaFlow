@@ -54,7 +54,7 @@ class TextRegionService:
             return []
 
         img_rgb = image.convert("RGB")
-        img_np = np.array(img_rgb)
+        np.array(img_rgb)
         all_blocks: list[NormalizedOCRBlock] = []
 
         for region in regions:
@@ -256,7 +256,7 @@ class TextRegionService:
                         keep[i] = False
                         break
 
-        return [b for b, k in zip(blocks, keep) if k]
+        return [b for b, k in zip(blocks, keep, strict=False) if k]
 
     @staticmethod
     def _bbox_iou(

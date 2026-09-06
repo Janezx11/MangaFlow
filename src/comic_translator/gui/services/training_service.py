@@ -10,9 +10,9 @@ import subprocess
 import sys
 import threading
 import time
+from collections.abc import Generator
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Generator
 
 from loguru import logger
 

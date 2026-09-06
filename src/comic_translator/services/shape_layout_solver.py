@@ -8,8 +8,6 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-import numpy as np
-
 from comic_translator.services.bubble_layout_service import BubbleLayoutService
 
 if TYPE_CHECKING:

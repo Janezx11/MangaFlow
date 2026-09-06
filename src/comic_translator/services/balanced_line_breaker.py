@@ -11,7 +11,6 @@ DP 递推: dp[i] = min(dp[j] + cost(j, i)) for all valid breaks j→i
 
 from __future__ import annotations
 
-import math
 from functools import lru_cache
 from typing import TYPE_CHECKING
 
@@ -92,7 +91,6 @@ class BalancedLineBreaker:
         dp[0] = 0.0
 
         for i in range(1, n + 1):
-            line_idx = 0  # 会动态调整
             for j in range(max(0, i - 30), i):  # 最多看 30 个字符
                 line_len = i - j
                 # 确定当前行索引（最后一行单独处理）

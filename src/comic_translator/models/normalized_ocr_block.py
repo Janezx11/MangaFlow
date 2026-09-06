@@ -1,4 +1,5 @@
 from pydantic import Field
+
 from comic_translator.models.ocr_block import OCRBlock
 
 

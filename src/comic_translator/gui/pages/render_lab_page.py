@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import asyncio
 import concurrent.futures
-from pathlib import Path
 
 import cv2
 import gradio as gr
@@ -55,7 +54,7 @@ def create_render_lab_page(pipeline_service: GuiPipelineService):
                 auto_detect = gr.Checkbox(label="AI 检测文字区域", value=True)
                 run_btn = gr.Button("Run", variant="primary")
 
-        status_md = gr.Markdown("就绪", elem_classes="mf-info-line")
+        gr.Markdown("就绪", elem_classes="mf-info-line")
 
         with gr.Row():
             with gr.Column():
@@ -112,7 +111,7 @@ def create_render_lab_page(pipeline_service: GuiPipelineService):
         h, w = img_bgr.shape[:2]
 
         # 伪造 DialogueBlock 兼容 OCRMaskProvider
-        from comic_translator.models.bubble import DialogueBlock, Bubble
+        from comic_translator.models.bubble import Bubble, DialogueBlock
         if regions:
             dbs = []
             for i, r in enumerate(regions):
@@ -207,7 +206,7 @@ def create_render_lab_page(pipeline_service: GuiPipelineService):
         img_bgr = _pil_to_bgr(image)
         h, w = img_bgr.shape[:2]
 
-        from comic_translator.models.bubble import DialogueBlock, Bubble
+        from comic_translator.models.bubble import Bubble, DialogueBlock
         if regions:
             dbs = []
             for i, r in enumerate(regions):

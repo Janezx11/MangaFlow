@@ -2,8 +2,6 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from loguru import logger
-
 from comic_translator.storage.database import get_session_local, init_db
 from comic_translator.storage.models import TranslationMemoryORM
 

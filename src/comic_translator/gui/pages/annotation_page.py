@@ -31,7 +31,6 @@ from comic_translator.gui.services.dataset_service import DatasetService
 from comic_translator.gui.services.gui_pipeline_service import GuiPipelineService
 from comic_translator.models.detection_region import DetectionRegion
 
-
 CLASS_COLORS = {
     "speech": (0, 255, 0),
     "narration": (0, 128, 255),
@@ -311,7 +310,7 @@ def create_annotation_page(
             dataset_service.regenerate_yaml(state.dataset)
         except Exception:
             pass
-        return state, f"已保存 {len(state.annotation.regions)} 个区域到 {label_path.name}"
+        return state, f"已保存到 {label_path.name}（{len(state.annotation.regions)} 个区域，无效区域已跳过，详见日志）"
 
     # ---------- 绑定 ----------
 

@@ -33,13 +33,13 @@
 
 | # | 问题 | 实测证据 | 建议 |
 |---|------|---------|------|
-| 6 | **`gui_pipeline_service.py` 为 1801 行 / 76KB 单体** | `src/comic_translator/gui/services/gui_pipeline_service.py` 单类塞了几十个 staticmethod | 拆成子模块（ocr 编排 / 翻译 / 渲染 / 进度）；两个翻译路径共用一处上下文构造 |
-| 7 | **重复的 HTTP 降级翻译路径** | `_translate_via_http`（1521 行起）自己重新解析 yaml + httpx 直连，system prompt 与 `_translate_via_llm_client` 完全重复 | 删降级路径，统一走 DI 的 LLMClient；或抽公共 `_build_system_prompt()` |
-| 8 | **残留死代码（空壳）** | `glossary/manager.py`（全部 `raise NotImplementedError`）、`providers/ocr/manga_ocr_provider.py`、`providers/qa/gemma_qa_provider.py`、`providers/render/opencv_render_provider.py`（`# TODO: implement actual rendering`） | 删除或标注 `# deprecated`，避免误导调用方 |
-| 9 | **`typography_service.py`(v1) 被 v2 取代仍导出** | `services/__init__.py:33` 导出 `TypographyService`，但全项目实际用 `TypographyServiceV2`（di.py、render_service.py、render_quality_service.py） | 移除 v1 导出，或标记废弃 |
-| 10 | **`defaults.yaml` 未删** | `src/comic_translator/config/defaults.yaml` 存在，但 `Settings` 已忽略它（PLAN §2.4 建议删除） | 删除该文件，配置统一走 `config.yaml` |
-| 11 | **版本/目标不一致** | `requires-python >=3.10` 但 ruff/mypy 配 `py311`；实际运行于 3.10.20 | 统一到 3.10 或提升至 3.11 并说明 |
-| 12 | **测试文档状态过期** | 文档称"121~124 全绿"，本次实测 **75 passed + 54 errors**（54 个全为 `tmp_path` 的 `PermissionError`，系本沙箱环境限制 `C:\Users\...\Temp\...` 写入，非代码 bug） | 在文档中注明验证环境与沙箱限制；建议 CI 里跑全量 |
+| 6 | ~~**`gui_pipeline_service.py` 为 1801 行 / 76KB 单体**~~ ✅ 已拆分 | 翻译阶段抽离到 `gui_pipeline_translation.py`（`GuiPipelineTranslationMixin`），服务文件 1888 → 853 行；公共 API 不变 | 拆成子模块（ocr 编排 / 翻译 / 渲染 / 进度）；两个翻译路径共用一处上下文构造 |
+| 7 | ~~**重复的 HTTP 降级翻译路径**~~ ✅ 已删除 | `_translate_via_http` / `_translate_single_http` 已移除，翻译统一走 DI 容器的 LLMClient | 删降级路径，统一走 DI 的 LLMClient；或抽公共 `_build_system_prompt()` |
+| 8 | ~~**残留死代码（空壳）**~~ ✅ 已清理 | `glossary/manager.py` 已删、空包 `comic_translator.glossary` 已删；检测阶段 `_merge_ocr_results` / `_resolve_cross_bubble_blocks` / `_reocr_in_bubble` 等死代码已删（被 `BubbleAwareOCRService` 取代）；`manga_ocr` / `gemma_qa` / `opencv_render` 保留为文档化扩展点并清理 lint | 删除或标注 `# deprecated`，避免误导调用方 |
+| 9 | ~~**`typography_service.py`(v1) 被 v2 取代仍导出**~~ ✅ 已解决 | `services/__init__.py` 已只导出 `TypographyServiceV2` | 移除 v1 导出，或标记废弃 |
+| 10 | ~~**`defaults.yaml` 未删**~~ ✅ 已解决 | `src/comic_translator/config/defaults.yaml` 已不存在 | 删除该文件，配置统一走 `config.yaml` |
+| 11 | ~~**版本/目标不一致**~~ ✅ 已统一 | `requires-python >=3.10` 且 ruff/mypy 现统一为 py310（对齐实际运行环境 3.10.20）；另在 ruff 中忽略对 CJK 误报的 RUF001/002/003 | 统一到 3.10 或提升至 3.11 并说明 |
+| 12 | **测试文档状态过期** | 文档称"121~124 全绿"，本次实测 **80 passed + 54 errors**（54 个全为 `tmp_path` 的 `PermissionError`，系本沙箱环境限制 `C:\Users\...\Temp\...` 写入，非代码 bug） | 在文档中注明验证环境与沙箱限制；建议 CI 里跑全量 |
 
 ---
 

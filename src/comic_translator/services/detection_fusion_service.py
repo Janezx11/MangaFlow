@@ -78,7 +78,7 @@ class DetectionFusionService:
             sources.update(r.source.split("+"))
 
         logger.info(
-            f"Fusion: {sum(len(l) for l in detection_lists)} raw → "
+            f"Fusion: {sum(len(item) for item in detection_lists)} raw → "
             f"{len(fused)} fused regions (sources={sources})"
         )
         return fused

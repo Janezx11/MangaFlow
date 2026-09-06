@@ -5,11 +5,9 @@ from __future__ import annotations
 import asyncio
 import concurrent.futures
 import time
-from pathlib import Path
 
 import gradio as gr
 from loguru import logger
-from PIL import Image
 
 from comic_translator.gui.components.detection_overlay import (
     bgr_to_pil,

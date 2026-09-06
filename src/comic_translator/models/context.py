@@ -1,7 +1,9 @@
+from typing import Any
+
 from pydantic import BaseModel, Field
+
 from comic_translator.models.enums import ComicStyle
 from comic_translator.models.glossary import GlossaryEntry, TranslationMemory
-from typing import Any
 
 
 class TranslationContext(BaseModel):

@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING
 from sqlalchemy import select
 
 from comic_translator.models.enums import ComicStyle, ProcessingStatus
-from comic_translator.models.project import ComicProject, ComicMetadata
+from comic_translator.models.project import ComicMetadata, ComicProject
 from comic_translator.storage.database import get_session
 from comic_translator.storage.models import ProjectORM
 
@@ -200,6 +200,7 @@ class TranslationMemoryRepository:
     def update_usage(self, tm_id: int) -> None:
         """更新使用次数"""
         from datetime import datetime, timezone
+
         from comic_translator.storage.models import TranslationMemoryORM
         session = next(get_session())
         try:
@@ -212,8 +213,9 @@ class TranslationMemoryRepository:
             session.close()
 
     def count(self) -> int:
-        from comic_translator.storage.models import TranslationMemoryORM
         from sqlalchemy import func
+
+        from comic_translator.storage.models import TranslationMemoryORM
         session = next(get_session())
         try:
             return session.execute(
@@ -301,8 +303,9 @@ class GlossaryRepository:
             session.close()
 
     def count(self) -> int:
-        from comic_translator.storage.models import GlossaryEntryORM
         from sqlalchemy import func
+
+        from comic_translator.storage.models import GlossaryEntryORM
         session = next(get_session())
         try:
             return session.execute(

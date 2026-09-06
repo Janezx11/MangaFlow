@@ -19,9 +19,10 @@
 
 from __future__ import annotations
 
+from dataclasses import dataclass, field
+
 import cv2
 import numpy as np
-from dataclasses import dataclass, field
 from loguru import logger
 from PIL import Image, ImageDraw
 
