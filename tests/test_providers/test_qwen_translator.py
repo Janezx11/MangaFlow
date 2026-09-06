@@ -2,9 +2,9 @@
 
 from unittest.mock import AsyncMock
 
-from comic_translator.models.translation_block import TranslationBlock
 from comic_translator.models.context import TranslationContext
 from comic_translator.models.glossary import GlossaryEntry
+from comic_translator.models.translation_block import TranslationBlock
 from comic_translator.providers.translation.qwen_translator import QwenTranslator
 
 

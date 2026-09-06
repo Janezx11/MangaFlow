@@ -1,6 +1,5 @@
 """Tests for cache service"""
 
-from comic_translator.cache.file_cache_provider import FileCacheProvider
 from comic_translator.cache.null_cache_provider import NullCacheProvider
 from comic_translator.services.cache_service import CacheService
 

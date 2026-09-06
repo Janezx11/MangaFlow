@@ -1,12 +1,11 @@
 """Tests for Pydantic models"""
 
-from comic_translator.models.ocr_block import OCRBlock
-from comic_translator.models.translation_block import TranslationBlock
-from comic_translator.models.glossary import GlossaryEntry, TranslationMemory
-from comic_translator.models.context import TranslationContext, QAReport
-from comic_translator.models.project import ComicProject, ComicMetadata
-from comic_translator.models.result import PageResult, RenderResult, ProcessingError
+from comic_translator.models.context import TranslationContext
 from comic_translator.models.enums import ComicStyle, ProcessingStatus
+from comic_translator.models.glossary import GlossaryEntry, TranslationMemory
+from comic_translator.models.ocr_block import OCRBlock
+from comic_translator.models.project import ComicMetadata, ComicProject
+from comic_translator.models.translation_block import TranslationBlock
 
 
 class TestOCRPydanticModels:
@@ -30,7 +29,7 @@ class TestOCRPydanticModels:
         import pydantic
         try:
             OCRBlock(id="b1", page=1, bbox=(0, 0, 10, 10), text="test", confidence=1.5)
-            assert False, "Should have raised"
+            raise AssertionError("Should have raised")
         except pydantic.ValidationError:
             pass
 

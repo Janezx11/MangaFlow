@@ -2,11 +2,11 @@
 
 import pytest
 
+from comic_translator.models.context import QAReport, TranslationContext
+from comic_translator.models.enums import ComicStyle
+from comic_translator.models.glossary import GlossaryEntry
 from comic_translator.models.ocr_block import OCRBlock
 from comic_translator.models.translation_block import TranslationBlock
-from comic_translator.models.context import TranslationContext, QAReport
-from comic_translator.models.glossary import GlossaryEntry
-from comic_translator.models.enums import ComicStyle
 
 # Disable async warnings in tests
 pytest.register_assert_rewrite("comic_translator")

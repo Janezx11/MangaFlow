@@ -1,8 +1,8 @@
 """Tests for Sprint 3 models"""
 
 from comic_translator.models.character_identity import CharacterIdentity, IdentityMatchResult
-from comic_translator.models.page_summary import PageSummary
 from comic_translator.models.merge_decision import MergeDecision
+from comic_translator.models.page_summary import PageSummary
 
 
 class TestCharacterIdentityModel:

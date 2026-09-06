@@ -1,6 +1,5 @@
 """Tests for PromptCacheService"""
 
-import json
 
 from comic_translator.services.prompt_cache_service import PromptCacheService
 

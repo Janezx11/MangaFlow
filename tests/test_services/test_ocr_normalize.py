@@ -1,7 +1,7 @@
 """Tests for OCRNormalizeService"""
 
-from comic_translator.models.ocr_block import OCRBlock
 from comic_translator.models.normalized_ocr_block import NormalizedOCRBlock
+from comic_translator.models.ocr_block import OCRBlock
 from comic_translator.services.ocr_normalize_service import OCRNormalizeService
 
 

@@ -11,8 +11,6 @@
 
 from pathlib import Path
 
-import pytest
-
 from comic_translator.gui.services.gui_pipeline_service import GuiPipelineService
 from comic_translator.services.batch_ocr_service import BatchOCRService
 from comic_translator.utils.natural_sort import natural_key

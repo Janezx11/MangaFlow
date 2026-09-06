@@ -7,7 +7,6 @@ Case 4: 旁白框 + 气泡 → 不应错误合并
 Case 5: SFX + 气泡 → 不应错误合并
 """
 
-import pytest
 from PIL import Image
 
 from comic_translator.models.bubble import Bubble

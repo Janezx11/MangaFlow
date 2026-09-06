@@ -1,14 +1,14 @@
 """Tests for new models"""
 
 from comic_translator.models.character_memory import CharacterMemory, CharacterMemoryEntry
+from comic_translator.models.enums import ComicStyle
+from comic_translator.models.normalized_ocr_block import NormalizedOCRBlock
 from comic_translator.models.translation_profile import (
-    TranslationProfile,
-    WESTERN_COMIC_PROFILE,
     MANGA_PROFILE,
     WEBTOON_PROFILE,
+    WESTERN_COMIC_PROFILE,
+    TranslationProfile,
 )
-from comic_translator.models.normalized_ocr_block import NormalizedOCRBlock
-from comic_translator.models.enums import ComicStyle
 
 
 class TestCharacterMemoryModel:

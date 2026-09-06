@@ -1,11 +1,9 @@
 """Tests for Batch Translation Pipeline"""
 
-import tempfile
-from pathlib import Path
 
-from comic_translator.models.batch_result import BatchInput, BatchPage, BatchOutput
-from comic_translator.models.normalized_ocr_block import NormalizedOCRBlock
+from comic_translator.models.batch_result import BatchInput, BatchPage
 from comic_translator.models.glossary import GlossaryEntry
+from comic_translator.models.normalized_ocr_block import NormalizedOCRBlock
 from comic_translator.services.batch_cache import BatchCacheService
 from comic_translator.services.batch_prompt_builder import BatchPromptBuilder
 
