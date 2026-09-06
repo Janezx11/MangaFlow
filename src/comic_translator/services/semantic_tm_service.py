@@ -41,8 +41,13 @@ class SemanticTranslationMemoryService:
         provider: str = "",
         model: str = "",
         context_hash: str = "",
+        project_id: str = "",
     ) -> int:
-        """存储一条翻译记忆"""
+        """存储一条翻译记忆
+
+        与 TranslationMemoryService.store 保持相同签名（调用方
+        TranslationService 会传 project_id），实现项目隔离。
+        """
         source_hash = hashlib.md5(source_text.encode("utf-8")).hexdigest()
 
         session = get_session_local(self._db_path)()
@@ -53,6 +58,7 @@ class SemanticTranslationMemoryService:
                 .filter(
                     TranslationMemoryORM.source_hash == source_hash,
                     TranslationMemoryORM.source_text == source_text,
+                    TranslationMemoryORM.project_id == (project_id or ""),
                 )
                 .first()
             )
@@ -69,6 +75,7 @@ class SemanticTranslationMemoryService:
                 context_hash=context_hash,
                 provider=provider,
                 model=model,
+                project_id=project_id or "",
                 usage_count=1,
                 last_used=datetime.now(timezone.utc),
             )
@@ -78,8 +85,15 @@ class SemanticTranslationMemoryService:
         finally:
             session.close()
 
-    def find_similar(self, source_text: str, limit: int = 5) -> list[TranslationMemory]:
+    def find_similar(
+        self,
+        source_text: str,
+        limit: int = 5,
+        project_id: str = "",
+    ) -> list[TranslationMemory]:
         """查询相似翻译
+
+        project_id 非空时按项目隔离（与其他 store/get 接口一致）。
 
         优先级:
         1. 精确匹配 (source_hash)
@@ -92,14 +106,22 @@ class SemanticTranslationMemoryService:
             from comic_translator.models.glossary import TranslationMemory
 
             results: list[TranslationMemory] = []
+            project_filter = (
+                TranslationMemoryORM.project_id == (project_id or "")
+                if project_id
+                else None
+            )
 
             # Phase 1: exact match by hash
+            exact_filters = [
+                TranslationMemoryORM.source_hash == source_hash,
+                TranslationMemoryORM.source_text == source_text,
+            ]
+            if project_filter is not None:
+                exact_filters.append(project_filter)
             exact = (
                 session.query(TranslationMemoryORM)
-                .filter(
-                    TranslationMemoryORM.source_hash == source_hash,
-                    TranslationMemoryORM.source_text == source_text,
-                )
+                .filter(*exact_filters)
                 .first()
             )
             if exact:
@@ -118,12 +140,15 @@ class SemanticTranslationMemoryService:
                 return results
 
             # Phase 2: LIKE match
+            like_filters = [
+                TranslationMemoryORM.source_text != source_text,
+                TranslationMemoryORM.source_text.like(f"%{source_text}%"),
+            ]
+            if project_filter is not None:
+                like_filters.append(project_filter)
             like_matches = (
                 session.query(TranslationMemoryORM)
-                .filter(
-                    TranslationMemoryORM.source_text != source_text,
-                    TranslationMemoryORM.source_text.like(f"%{source_text}%"),
-                )
+                .filter(*like_filters)
                 .order_by(TranslationMemoryORM.usage_count.desc())
                 .limit(limit - len(results))
                 .all()

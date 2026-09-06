@@ -5,6 +5,7 @@ from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from PIL import Image
+
     from comic_translator.models.bubble import Bubble
 
 

@@ -17,8 +17,7 @@ from pathlib import Path
 import yaml
 from loguru import logger
 
-from comic_translator.gui.services.annotation_service import CLASS_NAMES, CLASS_TO_ID
-
+from comic_translator.gui.services.annotation_service import CLASS_NAMES
 
 IMAGE_EXTS = {".png", ".jpg", ".jpeg", ".webp", ".bmp"}
 
@@ -215,12 +214,23 @@ class DatasetService:
     @staticmethod
     def _write_dataset_yaml(ds_dir: Path) -> Path:
         yaml_path = ds_dir / "dataset.yaml"
+        nc = len(CLASS_NAMES)
+        names = dict(enumerate(CLASS_NAMES))
+        if yaml_path.exists():
+            # 已有 yaml（如 1 类数据集）时保留其 nc/names，避免 4 类 schema 静默覆盖
+            try:
+                existing = yaml.safe_load(yaml_path.read_text(encoding="utf-8")) or {}
+                if existing.get("nc") and existing.get("names"):
+                    nc = int(existing["nc"])
+                    names = {int(k): v for k, v in existing["names"].items()}
+            except Exception:
+                pass
         config = {
             "path": ds_dir.as_posix(),
             "train": "images/train",
             "val": "images/val",
-            "nc": len(CLASS_NAMES),
-            "names": {i: n for i, n in enumerate(CLASS_NAMES)},
+            "nc": nc,
+            "names": names,
         }
         yaml_path.write_text(
             yaml.safe_dump(config, allow_unicode=True, sort_keys=False),

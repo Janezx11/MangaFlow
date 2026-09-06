@@ -9,8 +9,9 @@ from comic_translator.models.batch_result import BatchPage
 
 if TYPE_CHECKING:
     from comic_translator.providers.ocr.base import OCRProvider
-    from comic_translator.services.ocr_normalize_service import OCRNormalizeService
     from comic_translator.services.batch_cache import BatchCacheService
+    from comic_translator.services.ocr_normalize_service import OCRNormalizeService
+    from comic_translator.services.ocr_postprocess_service import OCRPostprocessService
 
 
 class BatchOCRService:

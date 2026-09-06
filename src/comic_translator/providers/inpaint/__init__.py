@@ -3,14 +3,14 @@
 from __future__ import annotations
 
 from comic_translator.providers.inpaint.base_inpaint_provider import InpaintProvider
-from comic_translator.providers.inpaint.opencv_inpaint_provider import OpenCVInpaintProvider
 from comic_translator.providers.inpaint.lama_inpaint_provider import LaMaInpaintProvider
+from comic_translator.providers.inpaint.opencv_inpaint_provider import OpenCVInpaintProvider
 from comic_translator.providers.inpaint.sd_inpaint_provider import SDInpaintProvider
 
 __all__ = [
     "InpaintProvider",
-    "OpenCVInpaintProvider",
     "LaMaInpaintProvider",
+    "OpenCVInpaintProvider",
     "SDInpaintProvider",
 ]
 

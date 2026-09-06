@@ -4,9 +4,7 @@ from __future__ import annotations
 
 import re
 import unicodedata
-from typing import TYPE_CHECKING
-
-from loguru import logger
+from typing import TYPE_CHECKING, ClassVar
 
 if TYPE_CHECKING:
     from comic_translator.models.normalized_ocr_block import NormalizedOCRBlock
@@ -55,29 +53,23 @@ class OCRPostprocessService:
             "through", "old", "still", "should", "while", "where", "right", "high",
             "need", "home", "hand", "place", "life", "world", "thing", "down",
             "very", "really", "little", "big", "ever", "never", "away", "again",
-            "still", "might", "turn", "show", "help", "keep", "start", "mean",
-            "why", "away", "here", "there", "always", "already", "enough",
-            "sure", "always", "maybe", "please", "sorry", "thank", "hello",
+            "might", "turn", "show", "help", "keep", "start", "mean",
+            "why", "always", "already", "enough",
+            "sure", "maybe", "please", "sorry", "thank", "hello",
             "married", "fledgling", "journalist", "dreamed", "stardom",
-            "unknown", "actor", "newly", "just", "traveled", "way", "from",
-            "usa", "balkans", "after", "receiving", "what", "they", "believed",
-            "best", "wedding", "gift", "ever", "babe", "cannot", "believe",
-            "how", "great", "this", "place", "looks", "starting", "believe",
-            "you", "were", "right", "all", "along", "greece", "indeed", "seems",
-            "most", "beautiful", "world", "told", "your", "parents", "decided",
-            "still", "child", "right", "bet", "must", "feel", "after", "long",
-            "move", "america", "when", "were", "wonderful", "back", "homeland",
-            "thanks", "uncle", "ever", "able", "thank", "him", "not", "only",
-            "best", "rooms", "hotel", "yours", "know", "will", "give", "air",
-            "tickets", "also", "booked", "one", "all", "free", "remember",
-            "nikos", "well", "until", "dawn", "than", "good", "party",
-            "pleased", "just", "eat", "drink", "bon", "vivant", "nothing",
-            "loves", "more", "has", "always", "been", "sounds", "someone",
-            "gets", "along", "could", "definitely", "will", "have", "chance",
-            "meet", "him", "tonight", "until", "then", "hit", "pool", "then",
-            "some", "fun", "huh", "why", "dont", "relax", "little", "come",
-            "back", "our", "room", "god", "almost", "seems", "perfect", "plan",
-            "too", "good", "true",
+            "unknown", "actor", "newly", "traveled", "usa", "balkans", "receiving", "believed",
+            "best", "wedding", "gift", "babe", "cannot", "believe",
+            "looks", "starting", "were", "along", "greece", "indeed", "seems",
+            "beautiful", "told", "parents", "decided",
+            "child", "bet", "must", "feel", "move", "america", "wonderful", "homeland",
+            "thanks", "uncle", "able", "rooms", "hotel", "yours", "air",
+            "tickets", "booked", "free", "remember",
+            "nikos", "until", "dawn", "party",
+            "pleased", "eat", "drink", "bon", "vivant", "nothing",
+            "loves", "more", "has", "been", "sounds", "someone",
+            "gets", "definitely", "chance",
+            "meet", "tonight", "hit", "pool", "fun", "huh", "dont", "relax", "room", "god", "almost", "perfect", "plan",
+            "true",
         }
 
     def process_page(
@@ -153,7 +145,7 @@ class OCRPostprocessService:
         return text
 
     # ---- OCR 常见错误直接映射 ----
-    OCR_FIXES = {
+    OCR_FIXES: ClassVar[dict[str, str]] = {
         # Page 1 — wedding / Greece
         "mappied": "married", "maPPIED": "Married", "MaPPIED": "Married",
         "tpaveled": "traveled", "TPaveLED": "Traveled",
@@ -163,21 +155,19 @@ class OCRPostprocessService:
         "joupnalist": "journalist", "Joupnalist": "Journalist",
         "wepe": "were", "WEpe": "Were",
         "eift": "gift", "EiFT": "Gift",
-        "eiFT": "Gift", "eiFT": "Gift",
         # Page 2 — Oh Babe
         "dpeamed": "dreamed", "DPEAMED": "Dreamed",
         "cpeat": "great", "Cpeat": "Great",
         "stapting": "starting", "Stapting": "Starting",
         "picht": "right", "Picht": "Right",
         "alonc": "along", "Alonc": "Along",
-        "gpeece": "greece", "Gpeece": "Greece",
+        "gpeece": "greece", "Gpeece": "Greece", "GpEECe": "Greece",
         "indeED": "indeed", "IndeED": "Indeed",
         "beautifUl": "beautiful", "BeaUtIFUL": "Beautiful",
         "wopld": "world", "Wopld": "World",
         # Page 3 — I told you
         "itold": "i told", "Itold": "I told",
         "didn't": "didn't", "DiDN'T": "Didn't",
-        "gpeece": "greece", "GpEECe": "Greece",
         "eipl": "girl", "eipl__": "girl",
         "beautiful": "beautiful", "BeauTiFul": "Beautiful",
         "evepything": "everything",
@@ -188,7 +178,6 @@ class OCRPostprocessService:
         "evepythine": "everything",
         # Page 4 — Yeah You told me
         "richt": "right", "richt?": "right?",
-        "lone": "long", "Lone": "Long",
         "amepica": "america", "AMEpica": "America",
         "wheN": "when", "WHEn": "When",
         "wonderful": "wonderful", "WONDEPFul": "Wonderful",
@@ -198,7 +187,8 @@ class OCRPostprocessService:
         "pooms": "rooms",
         "yours": "yours", "DF": "Of",
         "knOW": "know",
-        "gave": "give", "GAVE": "Give",
+        # 注意：不要把合法英文单词映射成别的词（如 gave→give、alone→along），
+        # 那会把正确的 OCR 结果改错；这里只保留"非词 → 正确词"的修复。
         "aip": "air", "Aip": "Air",
         "boekED": "booked", "BookEd": "Booked",
         "alL": "all", "ALl": "All",
@@ -209,10 +199,8 @@ class OCRPostprocessService:
         "pleased": "pleased", "PLEASED": "Pleased",
         "dpink": "drink", "DPink": "Drink",
         "vivant": "vivant", "VIvANT": "Vivant",
-        "thereis": "there is",
         "nothine": "nothing",
         # Page 5 — Sounds like
-        "alone": "along", "Alone": "Along",
         "withl": "with",
         "definitely": "definitely", "DeFinitely": "Definitely",
         "youll": "you'll", "Youll": "You'll",
@@ -238,15 +226,10 @@ class OCRPostprocessService:
         "babe": "babe", "BABE": "Babe",
         "cood": "good", "Cood": "Good",
         "true": "true", "True_--": "true.",
-        # General
-        "stark": "Stark",
-        "tower": "Tower",
-        "marina": "Marina", "mARINA": "Marina",
+        # General（专有名词首字母大写只对"非词/大小写错乱"生效，
+        # 不映射合法普通词，避免把 "the tower"、"stark contrast" 改错）
         "katsapos": "Katsaros",
-        "woods": "Woods", "woodS": "Woods",
         "andreW": "Andrew",
-        "tony": "Tony",
-        "babe": "Babe",
     }
 
     def _fix_spelling(self, text: str) -> str:
@@ -280,7 +263,6 @@ class OCRPostprocessService:
                             continue
             fixed.append(w)
         return " ".join(fixed)
-        return " ".join(fixed)
 
     # ---- Level 3: 大小写修复 ----
 
@@ -301,7 +283,7 @@ class OCRPostprocessService:
         proper_nouns = {
             "usa", "balkans", "america", "greece", "nikos", "tony", "stark",
             "iron", "man", "marina", "katsaros", "andrew", "woods",
-            "jarvis", "pepper", "happy", "stark", "tower",
+            "jarvis", "pepper", "happy", "tower",
         }
         for i, w in enumerate(words):
             clean = w.strip("""'\".,!?;:-_()[]{}""")
@@ -409,13 +391,12 @@ class OCRPostprocessService:
                           "Good", "Great", "Big", "Little", "Old", "New",
                           "Right", "Wrong", "Sure", "Sorry", "Please",
                           "Thank", "Hello", "Hey", "Hi", "God", "Babe",
-                          "Because", "But", "However", "Therefore", "Though",
+                          "Because", "However", "Therefore", "Though",
                           "While", "Since", "Until", "After", "Before",
                           "About", "Into", "Through", "During", "Between",
                           "Could", "Would", "Should", "Might", "Must",
                           "Most", "Best", "More", "Less", "Enough",
-                          "Beautiful", "Wonderful", "Perfect", "Great",
-                          "Little", "Still", "Already", "Always", "Never",
+                          "Beautiful", "Wonderful", "Perfect", "Already", "Always", "Never",
                           "Ever", "Again", "Away", "Back", "Home",
                         }
                 if len(name_parts) <= 2 and full_name not in common:

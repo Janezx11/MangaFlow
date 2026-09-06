@@ -2,12 +2,11 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from loguru import logger
-
 from comic_translator.providers.ocr.base import OCRProvider
 
 if TYPE_CHECKING:
     from PIL import Image
+
     from comic_translator.models.ocr_block import OCRBlock
 
 

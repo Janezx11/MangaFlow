@@ -25,8 +25,8 @@ def _build_summary_md(report: dict) -> str:
     lines = [
         "## 质检报告",
         "",
-        f"| 指标 | 数值 |",
-        f"|------|------|",
+        "| 指标 | 数值 |",
+        "|------|------|",
         f"| 总页数 | {s.get('total_pages', 0)} |",
         f"| 通过 | {s.get('passed', 0)} ({s.get('overall_pass_rate', 0)}%) |",
         f"| 重跑后通过 | {s.get('retry_passed', 0)} |",
@@ -85,6 +85,24 @@ def _load_page_detail(report: dict, page_num: int) -> str:
 def create_quality_report_page():
     """创建质检报告标签页"""
 
+    # Gradio 6 下「构建后、启动前」对组件 .value 赋值不会进入客户端配置 ——
+    # 首屏数据必须在构造时传入。
+    def refresh(report_path: str):
+        report = _load_report(report_path)
+        if report is None:
+            return (
+                "报告文件不存在，请先运行翻译流水线",
+                [],
+                "无数据",
+                "无数据",
+            )
+        summary = _build_summary_md(report)
+        rows, _headers = _build_page_table(report)
+        manual = _build_manual_review_md(report)
+        return summary, rows, manual, f"已加载: {len(report.get('pages', []))} 页"
+
+    _summary, _rows, _manual, _msg = refresh("data/output/quality_report.json")
+
     with gr.Column():
         gr.Markdown("## 质检报告")
 
@@ -97,13 +115,13 @@ def create_quality_report_page():
             refresh_btn = gr.Button("刷新报告", variant="primary", scale=1)
             open_folder_btn = gr.Button("打开输出目录", scale=1)
 
-        summary_md = gr.Markdown("点击「刷新报告」加载质检数据")
+        summary_md = gr.Markdown(_summary)
 
         with gr.Row():
             with gr.Column(scale=2):
                 page_table = gr.Dataframe(
                     headers=["Page", "Quality", "Trans Status", "Score", "Retry", "Issues"],
-                    value=[],
+                    value=_rows,
                     interactive=False,
                     wrap=True,
                     label="各页面评分",
@@ -111,7 +129,7 @@ def create_quality_report_page():
                 )
 
             with gr.Column(scale=1):
-                manual_md = gr.Markdown("")
+                manual_md = gr.Markdown(_manual)
 
         with gr.Row():
             page_detail_input = gr.Number(label="查看页面详情 (页码)", value=1, precision=0)
@@ -120,23 +138,9 @@ def create_quality_report_page():
         page_detail = gr.Markdown("")
 
         # 状态提示
-        status_md = gr.Markdown("就绪")
+        status_md = gr.Markdown(_msg)
 
     # 事件绑定
-    def refresh(report_path: str):
-        report = _load_report(report_path)
-        if report is None:
-            return (
-                "报告文件不存在，请先运行翻译流水线",
-                [],
-                "无数据",
-                "无数据",
-            )
-        summary = _build_summary_md(report)
-        rows, headers = _build_page_table(report)
-        manual = _build_manual_review_md(report)
-        return summary, rows, manual, f"已加载: {len(report.get('pages', []))} 页"
-
     def load_detail(report_path: str, page_num: int):
         report = _load_report(report_path)
         if report is None:
@@ -169,6 +173,3 @@ def create_quality_report_page():
         inputs=[],
         outputs=[status_md],
     )
-
-    # 页面加载时自动刷新一次
-    refresh("data/output/quality_report.json")

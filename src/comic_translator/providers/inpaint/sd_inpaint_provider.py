@@ -98,4 +98,4 @@ class SDInpaintProvider(InpaintProvider):
         return cv2.cvtColor(np.array(result), cv2.COLOR_RGB2BGR)
 
 
-import cv2  # noqa: E402
+import cv2

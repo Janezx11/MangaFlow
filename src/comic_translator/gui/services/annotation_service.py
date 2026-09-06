@@ -18,7 +18,6 @@ from PIL import Image
 
 from comic_translator.models.detection_region import DetectionRegion
 
-
 # 类别映射 (id <-> name)
 CLASS_NAMES = ["speech", "narration", "title", "sfx"]
 CLASS_TO_ID = {name: i for i, name in enumerate(CLASS_NAMES)}

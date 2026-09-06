@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import re
 from typing import TYPE_CHECKING
 
 from loguru import logger
@@ -9,8 +10,8 @@ from comic_translator.clients.base import LLMClient
 from comic_translator.providers.translation.base import TranslationProvider
 
 if TYPE_CHECKING:
-    from comic_translator.models.translation_block import TranslationBlock
     from comic_translator.models.context import TranslationContext
+    from comic_translator.models.translation_block import TranslationBlock
 
 
 class QwenTranslator(TranslationProvider):
@@ -22,6 +23,9 @@ class QwenTranslator(TranslationProvider):
     翻译策略：将所有文本块打包到一次 LLM 调用中批量翻译，
     返回 JSON 格式结果，按 id 映射到每个 TranslationBlock。
     """
+
+    # 从 JSON 残片行中提取 translated/translated_text 值（fallback parse 用）
+    _TRANSLATED_VALUE_RE = re.compile(r'"translated(?:_text)?"\s*:\s*"([^"]*)"')
 
     def __init__(self, client: LLMClient, model: str = "qwen3.5:9b") -> None:
         self._client = client
@@ -99,11 +103,12 @@ class QwenTranslator(TranslationProvider):
             )
             return self._parse_response(response, blocks)
         except Exception as e:
-            logger.exception(f"Translation failed")
+            logger.exception("Translation failed")
             logger.error(f"  Message: {e}")
-            # Fallback: return blocks with source text as translated text
+            # 失败时留空 translated_text：渲染层按 failed 处理并尊重
+            # fallback_to_source，不把英文原文伪装成"已翻译"
             for block in blocks:
-                block.translated_text = block.source_text
+                block.translated_text = ""
             return blocks
 
     async def translate_single(
@@ -156,28 +161,37 @@ class QwenTranslator(TranslationProvider):
             translated = id_map.get(block.id) or id_map.get(block.ocr_block_id, "")
             if not translated:
                 logger.warning(f"Block {block.id}: no translation found in model response")
-            block.translated_text = translated if translated else block.source_text
+            # 缺译文时留空（失败状态），而不是拿英文原文冒充译文
+            block.translated_text = translated
 
-        # If any blocks still have empty translated_text (shouldn't happen with the fallback above),
-        # use positional fallback
+        # If any blocks still have empty translated_text, try positional fallback
         for i, block in enumerate(blocks):
             if not block.translated_text:
                 if i < len(parsed):
                     logger.warning(f"Block {block.id}: positional fallback to item {i}")
-                    block.translated_text = parsed[i].get("translated_text", "") or block.source_text
+                    block.translated_text = parsed[i].get("translated_text", "") or ""
                 else:
-                    block.translated_text = block.source_text
+                    block.translated_text = ""
 
         return blocks
 
     def _fallback_parse(
         self, response: str, blocks: list[TranslationBlock]
     ) -> list[TranslationBlock]:
-        """JSON 解析失败时的回退方案：按行匹配"""
-        lines = [l.strip() for l in response.split("\n") if l.strip()]
+        """JSON 解析失败时的回退方案：按行匹配
+
+        跳过 JSON 语法残片行（如 {"id": "b1", ...},），只提取真正的译文；
+        提取不到的块留空（失败状态），不把 JSON 残片或英文原文当译文渲染。
+        """
+        lines = [line.strip() for line in response.split("\n") if line.strip()]
+        values: list[str] = []
+        for line in lines:
+            if line.startswith(("{", "[", "}", "]", '"id"')):
+                m = self._TRANSLATED_VALUE_RE.search(line)
+                if m:
+                    values.append(m.group(1))
+                continue
+            values.append(line)
         for i, block in enumerate(blocks):
-            if i < len(lines):
-                block.translated_text = lines[i]
-            else:
-                block.translated_text = block.source_text
+            block.translated_text = values[i] if i < len(values) else ""
         return blocks

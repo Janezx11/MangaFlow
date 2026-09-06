@@ -23,10 +23,8 @@ from PIL import Image, ImageDraw
 from comic_translator.models.bubble import DialogueBlock
 from comic_translator.models.render_models import QAResult, RenderPageResult
 from comic_translator.providers.inpaint import create_inpaint_provider
-from comic_translator.providers.inpaint.base_inpaint_provider import InpaintProvider
 from comic_translator.services.font_manager import FontManager
 from comic_translator.services.mask import create_mask_provider
-from comic_translator.services.mask.base_mask_provider import MaskProvider
 from comic_translator.services.mask_refinement_service import MaskRefinementService
 from comic_translator.services.render_qa_service import RenderQAService
 from comic_translator.services.render_quality_evaluator import RenderQualityEvaluator
@@ -251,6 +249,7 @@ class RenderQualityService:
                 image_shape=(h, w),
                 mask=getattr(db.bubble, 'mask', None),
                 ocr_rect=merge_ocr_rect(db),
+                preset_font_size=getattr(db, "font_size", 0) or None,
             )
             if layout is None:
                 db.render_status = "failed"
@@ -369,7 +368,7 @@ class RenderQualityService:
         debug_blocks: list[dict],
         typography_scores: list[dict],
         qa: QAResult | None,
-        quality: "RenderQualityScores",
+        quality: dict,
         translation_integrity: dict,
     ) -> None:
         page_dir = out_dir / f"page_{page:04d}"

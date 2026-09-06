@@ -14,32 +14,6 @@ from comic_translator.gui.services.model_registry_service import ModelRegistrySe
 def create_model_page(registry_service: ModelRegistryService, config_service: GuiConfigService, pipeline_service):
     """创建模型注册表标签页"""
 
-    with gr.Column():
-        gr.Markdown("## 模型注册表")
-
-        with gr.Row():
-            refresh_btn = gr.Button("刷新", size="sm", scale=1, min_width=80)
-            active_md = gr.Markdown("")
-
-        model_table = gr.Dataframe(
-            headers=["名称", "类型", "数据集", "mAP50", "mAP50-95",
-                     "大小(MB)", "创建时间", "启用"],
-            value=[],
-            interactive=False,
-            wrap=True,
-        )
-
-        with gr.Row():
-            selected_name = gr.Textbox(label="选中模型", interactive=False, scale=2)
-            enable_btn = gr.Button("启用", variant="primary", scale=1)
-            disable_btn = gr.Button("禁用", scale=1)
-            delete_btn = gr.Button("删除注册", variant="stop", scale=1)
-
-        status_md = gr.Markdown("就绪")
-
-        with gr.Accordion("模型详情", open=False):
-            detail_md = gr.Markdown("未选中")
-
     # ---------- 逻辑 ----------
 
     def refresh():
@@ -60,10 +34,53 @@ def create_model_page(registry_service: ModelRegistryService, config_service: Gu
         active_text = f"**当前启用:** {active.name}" if active else "**当前启用:** 无"
         return rows, active_text, f"共 {len(models)} 个模型"
 
+    # Gradio 6 下「构建后、启动前」对组件 .value 赋值不会进入客户端配置 ——
+    # 首屏数据必须在构造时传入。
+    _initial_rows, _initial_active, _initial_status = refresh()
+
+    with gr.Column():
+        gr.Markdown("## 模型注册表")
+
+        with gr.Row():
+            refresh_btn = gr.Button("刷新", size="sm", scale=1, min_width=80)
+            active_md = gr.Markdown(_initial_active)
+
+        model_table = gr.Dataframe(
+            headers=["名称", "类型", "数据集", "mAP50", "mAP50-95",
+                     "大小(MB)", "创建时间", "启用"],
+            value=_initial_rows,
+            interactive=False,
+            wrap=True,
+        )
+
+        with gr.Row():
+            selected_name = gr.Textbox(label="选中模型", interactive=False, scale=2)
+            enable_btn = gr.Button("启用", variant="primary", scale=1)
+            disable_btn = gr.Button("禁用", scale=1)
+            delete_btn = gr.Button("删除注册", variant="stop", scale=1)
+
+        status_md = gr.Markdown(_initial_status)
+
+        with gr.Accordion("模型详情", open=False):
+            detail_md = gr.Markdown("未选中")
+
+    # ---------- 绑定 ----------
     def on_select(evt: gr.SelectData, table):
         if evt.index is None:
             return "", "未选中"
-        row = table[evt.index[0]]
+        row_idx = evt.index[0]
+        # Gradio 6 的 Dataframe 默认 preprocess 成 pandas DataFrame，
+        # table[int] 是按列名取列（KeyError），必须用 iloc 按位置取行
+        try:
+            import pandas as pd
+            if isinstance(table, pd.DataFrame):
+                if not (0 <= row_idx < len(table)):
+                    return "", "未选中"
+                row = table.iloc[row_idx].tolist()
+            else:
+                row = list(table[row_idx])
+        except Exception:
+            return "", "未选中"
         name = row[0]
         info = registry_service.get_model(name)
         if info is None:
@@ -92,7 +109,7 @@ def create_model_page(registry_service: ModelRegistryService, config_service: Gu
                 logger.info(f"Enabled model -> config.yaml bubble.model: {Path(info.path).as_posix()}")
             try:
                 pipeline_service.refresh_bubble_provider()
-            except Exception as e:  # noqa: BLE001
+            except Exception as e:
                 logger.warning(f"Bubble provider refresh failed: {e}")
         rows, active, _ = refresh()
         return rows, active, (
@@ -125,8 +142,3 @@ def create_model_page(registry_service: ModelRegistryService, config_service: Gu
     delete_btn.click(fn=delete, inputs=[selected_name],
                      outputs=[model_table, active_md, status_md])
 
-    # 初次刷新
-    rows, active, msg = refresh()
-    model_table.value = rows
-    active_md.value = active
-    status_md.value = msg

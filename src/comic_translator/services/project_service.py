@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING
 from loguru import logger
 
 from comic_translator.models.enums import ComicStyle, ProcessingStatus
-from comic_translator.models.project import ComicProject, ComicMetadata
+from comic_translator.models.project import ComicMetadata, ComicProject
 
 if TYPE_CHECKING:
     from comic_translator.storage.repositories import ProjectRepository
@@ -78,17 +78,17 @@ class ProjectService:
             raise NotImplementedError("Repository not configured")
 
     def get_page_paths(self, project: ComicProject) -> list[str]:
-        """获取项目所有图片路径（按文件名排序）"""
+        """获取项目所有图片路径（自然排序，页码与阅读顺序一致）"""
         input_dir = Path(project.input_dir)
         if not input_dir.exists():
             logger.warning(f"Input directory not found: {project.input_dir}")
             return []
 
-        exts = ("*.png", "*.jpg", "*.jpeg", "*.webp", "*.bmp")
-        paths: list[str] = []
-        for ext in exts:
-            paths.extend(str(p) for p in sorted(input_dir.glob(ext)))
-        return paths
+        from comic_translator.utils.natural_sort import natural_key
+
+        exts = {".png", ".jpg", ".jpeg", ".webp", ".bmp"}
+        files = [p for p in input_dir.iterdir() if p.suffix.lower() in exts]
+        return [str(p) for p in sorted(files, key=natural_key)]
 
     def resume(self, project_id: str) -> int:
         """查找需要继续的页码

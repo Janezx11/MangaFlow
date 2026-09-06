@@ -10,8 +10,7 @@ from comic_translator.models.batch_result import BatchOutput, PageTranslation
 from comic_translator.models.translation_block import TranslationBlock
 
 if TYPE_CHECKING:
-    from comic_translator.models.batch_result import BatchInput, BatchPage
-    from comic_translator.models.glossary import GlossaryEntry
+    from comic_translator.models.batch_result import BatchInput
 
 
 class BatchPromptBuilder:
@@ -181,6 +180,13 @@ class BatchPromptBuilder:
         if isinstance(raw_glossary, dict):
             glossary = {str(k): str(v) for k, v in raw_glossary.items()}
 
+        # 原文 id→text 映射：模型漏掉 corrected 时回退原始 OCR 文本
+        original_text_by_id = {
+            block.id: block.text
+            for page in batch_input.pages
+            for block in page.blocks
+        }
+
         # Parse pages
         pages: list[PageTranslation] = []
         for raw_page in raw_pages:
@@ -192,7 +198,7 @@ class BatchPromptBuilder:
                 corrected = str(raw_block.get("corrected", ""))
                 translated = str(raw_block.get("translated", ""))
                 # Use corrected text as source if available, else original
-                source = corrected or ""
+                source = corrected or original_text_by_id.get(bid, "")
                 blocks.append(TranslationBlock(
                     id=bid,
                     ocr_block_id=bid,

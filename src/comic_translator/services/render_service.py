@@ -17,6 +17,7 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+from typing import ClassVar
 
 
 def merge_ocr_rect(dialogue_block) -> tuple[int, int, int, int] | None:
@@ -44,10 +45,10 @@ import numpy as np
 from loguru import logger
 from PIL import Image, ImageDraw
 
-from comic_translator.models.render_models import QAResult, RenderPageResult
+from comic_translator.models.render_models import RenderPageResult
 
 if TYPE_CHECKING:
-    from comic_translator.models.bubble import Bubble, DialogueBlock
+    from comic_translator.models.bubble import DialogueBlock
     from comic_translator.services.background_cleaner import BackgroundCleaner
     from comic_translator.services.font_manager import FontManager
     from comic_translator.services.inpaint_service import InpaintService
@@ -76,7 +77,7 @@ class RenderService:
       Debug Output (incl. layout overlay)
     """
 
-    REGION_COLORS = {
+    REGION_COLORS: ClassVar[dict[str, tuple[int, int, int]]] = {
         "speech": (0, 255, 0),
         "narration": (0, 128, 255),
         "title": (255, 0, 0),

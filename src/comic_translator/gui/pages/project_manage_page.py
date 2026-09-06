@@ -11,11 +11,11 @@ from pathlib import Path
 import gradio as gr
 
 from comic_translator.gui.components.dir_scanner import scan_image_dirs
+from comic_translator.models.character_identity import CharacterIdentity
+from comic_translator.models.glossary import GlossaryEntry
 from comic_translator.services.character_identity_service import CharacterIdentityService
 from comic_translator.services.glossary_service import GlossaryService
 from comic_translator.services.translation_memory_service import TranslationMemoryService
-from comic_translator.models.character_identity import CharacterIdentity
-from comic_translator.models.glossary import GlossaryEntry
 
 GLOSSARY_HEADERS = ["ID", "源文", "译文", "上下文", "分类", "优先级"]
 CHAR_HEADERS = ["角色ID", "规范名", "别名", "头衔", "昵称", "描述", "口癖"]
@@ -74,6 +74,22 @@ def _tm_rows(entries: list[dict]) -> list[list]:
     return rows
 
 
+def _row_from(table, row_index: int) -> list:
+    """从 Gradio Dataframe 的 select 事件值中取一行，兼容 pandas DataFrame / list-of-lists"""
+    try:
+        import pandas as pd
+        if isinstance(table, pd.DataFrame):
+            if 0 <= row_index < len(table):
+                return table.iloc[row_index].tolist()
+            return []
+    except Exception:
+        pass
+    try:
+        return list(table[row_index])
+    except Exception:
+        return []
+
+
 def create_project_page():
     """创建项目管理标签页"""
     glossary_service = GlossaryService()
@@ -97,7 +113,7 @@ def create_project_page():
             )
             refresh_proj_btn = gr.Button("刷新项目", size="sm", scale=1, min_width=100)
 
-        status_md = gr.Markdown("请选择项目")
+        gr.Markdown("请选择项目")
 
         with gr.Tabs():
             # ================= 术语表 =================
@@ -191,10 +207,10 @@ def create_project_page():
         return _glossary_rows(entries), f"共 {len(entries)} 条术语（项目: {pid}）", None
 
     def on_select_glossary(evt: gr.SelectData, table):
-        if evt.index is None or not table:
+        if evt.index is None:
             return "", "", "", "general", 5, "", None
-        row = table[evt.index[0]]
         try:
+            row = _row_from(table, int(evt.index[0]))
             return (
                 str(row[1]), str(row[2]), str(row[3] or ""),
                 str(row[4] or "general"), int(row[5] or 0),
@@ -238,9 +254,6 @@ def create_project_page():
         ok = glossary_service.delete_term(int(selected_id))
         return ("已删除" if ok else "删除失败"), None
 
-    def refresh_glossary(project_dir):
-        return load_glossary(project_dir)[0], load_glossary(project_dir)[1]
-
     def load_chars(project_dir):
         if not project_dir:
             return [], "", None
@@ -249,10 +262,10 @@ def create_project_page():
         return _char_rows(identities), f"共 {len(identities)} 个角色（项目: {pid}）", None
 
     def on_select_char(evt: gr.SelectData, table):
-        if evt.index is None or not table:
+        if evt.index is None:
             return ("", "", "", "", "", "", "", None)
-        row = table[evt.index[0]]
         try:
+            row = _row_from(table, int(evt.index[0]))
             return (
                 str(row[0]), str(row[1]), str(row[2] or ""),
                 str(row[3] or ""), str(row[4] or ""),
@@ -280,7 +293,7 @@ def create_project_page():
             description=desc.strip(),
             speaking_style=style.strip(),
         )
-        char_id = char_service.create_identity(identity, project_id=pid)
+        char_service.create_identity(identity, project_id=pid)
         return f"已新增角色 {name.strip()}", None
 
     def update_char(project_dir, selected_id, cid, name, aliases, titles, nicknames, desc, style):
@@ -304,9 +317,6 @@ def create_project_page():
         ok = char_service.delete_identity(selected_id)
         return ("已删除" if ok else "删除失败"), None
 
-    def refresh_chars(project_dir):
-        return load_chars(project_dir)[0], load_chars(project_dir)[1]
-
     def load_tm(project_dir):
         if not project_dir:
             return [], "", None
@@ -315,10 +325,10 @@ def create_project_page():
         return _tm_rows(entries), f"共 {len(entries)} 条翻译记忆（项目: {pid}）", None
 
     def on_select_tm(evt: gr.SelectData, table):
-        if evt.index is None or not table:
+        if evt.index is None:
             return "", None
-        row = table[evt.index[0]]
         try:
+            row = _row_from(table, int(evt.index[0]))
             return "已选中记忆 #" + str(row[0]), int(row[0])
         except Exception:
             return "", None

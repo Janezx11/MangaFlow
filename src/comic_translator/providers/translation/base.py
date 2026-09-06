@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
-from comic_translator.models.translation_block import TranslationBlock
+
 from comic_translator.models.context import TranslationContext
+from comic_translator.models.translation_block import TranslationBlock
 
 
 class TranslationProvider(ABC):

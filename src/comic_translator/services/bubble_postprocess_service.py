@@ -19,18 +19,18 @@ from typing import TYPE_CHECKING
 import cv2
 import numpy as np
 from loguru import logger
-from scipy.spatial import ConvexHull
 
 from comic_translator.models.bubble import Bubble
 
 if TYPE_CHECKING:
-    from comic_translator.models.normalized_ocr_block import NormalizedOCRBlock
+    pass
 
-# ---- 导入 scipy 可能失败，准备 fallback ----
+# ---- scipy 可能缺失，缺失时退化为不使用 ConvexHull ----
 try:
     from scipy.spatial import ConvexHull
     HAS_SCIPY = True
 except ImportError:
+    ConvexHull = None
     HAS_SCIPY = False
 
 

@@ -12,7 +12,6 @@ from __future__ import annotations
 
 import os
 from pathlib import Path
-from typing import TYPE_CHECKING
 
 import numpy as np
 from loguru import logger
@@ -130,10 +129,11 @@ class CTBDTextDetectorProvider(TextDetectorProvider):
 
     async def detect(self, image: Image.Image) -> list[TextRegion]:
         """检测文本区域"""
-        self._ensure_model()
         import asyncio
 
         try:
+            # 懒初始化（含 HF snapshot_download）放在线程里，避免阻塞事件循环
+            await asyncio.to_thread(self._ensure_model)
             return await asyncio.to_thread(self._run_detection, image)
         except Exception as e:
             logger.error(f"CTBD detection failed: {e}")

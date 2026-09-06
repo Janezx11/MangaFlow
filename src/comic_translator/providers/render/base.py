@@ -1,7 +1,9 @@
 from abc import ABC, abstractmethod
+
 from PIL import Image
-from comic_translator.models.translation_block import TranslationBlock
+
 from comic_translator.models.result import RenderResult
+from comic_translator.models.translation_block import TranslationBlock
 
 
 class RenderProvider(ABC):

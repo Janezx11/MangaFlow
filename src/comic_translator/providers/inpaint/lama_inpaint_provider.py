@@ -19,7 +19,6 @@ from PIL import Image
 
 from comic_translator.providers.inpaint.base_inpaint_provider import InpaintProvider
 
-
 # LaMa 下采样倍率（模型内部有 3 层下采样，2^3 = 8）
 LAMA_DOWNSCALE_FACTOR = 8
 
@@ -87,23 +86,33 @@ class LaMaInpaintProvider(InpaintProvider):
             return self._model
 
         try:
-            from simple_lama_inpainting import SimpleLama
             import torch
+            from simple_lama_inpainting import SimpleLama
 
             if self.device == "auto":
                 device = "cuda" if torch.cuda.is_available() else "cpu"
             else:
                 device = self.device
 
-            if (self.model_dir / "big-lama").exists():
-                self._model = SimpleLama(
-                    model_dir=str(self.model_dir / "big-lama"),
-                    device=device,
-                )
-            else:
+            # 兼容两种目录布局：
+            #   model_dir 本身就是 big-lama 权重目录（config.yaml 的 lama_model_path
+            #   通常指向 models/lama/big-lama）
+            #   model_dir 的下一级 big-lama/ 子目录
+            # 都找不到时才回退 SimpleLama 默认（自动下载）。
+            candidates = [self.model_dir, self.model_dir / "big-lama"]
+            self._model = None
+            for cand in candidates:
+                if not (cand.exists() and cand.is_dir() and any(cand.iterdir())):
+                    continue
+                try:
+                    self._model = SimpleLama(model_dir=str(cand), device=device)
+                    logger.info(f"LaMa model loaded from {cand} on {device}")
+                    break
+                except Exception as load_err:
+                    logger.warning(f"Failed to load LaMa from {cand}: {load_err}")
+            if self._model is None:
                 self._model = SimpleLama(device=device)
-
-            logger.info(f"LaMa model loaded on {device}")
+                logger.info(f"LaMa model loaded (default download) on {device}")
         except Exception as e:
             logger.error(f"Failed to load LaMa: {e}")
             raise

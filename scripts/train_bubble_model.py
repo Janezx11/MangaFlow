@@ -93,10 +93,23 @@ def main():
     logger.info(f"  mAP50-95:  {val_results.box.map:.4f}")
 
     # 导出模型（用 basename + 实验名，避免 model 带路径时产生嵌套路径）
+    # P0 修复：ultralytics 在 runs/segment/<name> 已存在时会自动改名（bubble→bubble2），
+    # 必须从训练结果里取真实 save_dir，否则会把上一次的旧权重导出成新模型。
+    save_dir = getattr(results, "save_dir", None)
+    if save_dir:
+        best_pt = Path(save_dir) / "weights" / "best.pt"
+    else:  # 兜底（旧版 ultralytics 无 save_dir 属性时）
+        best_pt = Path(f"runs/segment/{args.name}/weights/best.pt")
+
     output_path = Path(f"models/bubble/{Path(args.model).stem}-{args.name}.pt")
     output_path.parent.mkdir(parents=True, exist_ok=True)
+    if output_path.exists():
+        # P1：拒绝静默覆盖已有模型（注册表元数据无法同步）
+        stamp = __import__("time").strftime("%Y%m%d_%H%M%S")
+        renamed = output_path.with_name(f"{output_path.stem}-{stamp}.pt")
+        logger.warning(f"输出已存在，改存为: {renamed}")
+        output_path = renamed
 
-    best_pt = Path(f"runs/segment/{args.name}/weights/best.pt")
     if best_pt.exists():
         import shutil
         shutil.copy(str(best_pt), str(output_path))
@@ -104,6 +117,7 @@ def main():
         logger.info(f"使用: YOLO11BubbleProvider('{output_path}')")
     else:
         logger.warning(f"未找到 best.pt: {best_pt}")
+        sys.exit(1)
 
 
 if __name__ == "__main__":

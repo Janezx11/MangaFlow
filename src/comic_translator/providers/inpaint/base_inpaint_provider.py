@@ -20,11 +20,11 @@ class InpaintProvider(ABC):
         """修复被 mask 标记的区域
 
         Args:
-            image: PIL Image 或 numpy array (RGB/BGR 均可)
+            image: PIL Image (RGB) 或 numpy array (BGR —— 与 cv2.imread 一致)
             mask: uint8 单通道 numpy array,255 表示待修复区域
 
         Returns:
-            numpy array,格式与输入 image 一致
+            numpy array,格式与输入 image 一致（ndarray 输入返回 BGR）
         """
         ...
 
@@ -50,11 +50,15 @@ class InpaintProvider(ABC):
 
     @staticmethod
     def _to_bgr(image: Image.Image | np.ndarray) -> np.ndarray:
-        arr = InpaintProvider._to_numpy(image, rgb=True)
-        if len(arr.shape) == 3:
-            return cv2.cvtColor(arr, cv2.COLOR_RGB2BGR)
-        return arr
+        """统一转成 BGR ndarray。
+
+        约定：ndarray 输入已经是 BGR（调用方都来自 cv2.imread / COLOR_RGB2BGR
+        之后的管线），直接返回副本；PIL 输入是 RGB，转 BGR。
+        """
+        if isinstance(image, np.ndarray):
+            return image.copy()
+        return cv2.cvtColor(np.array(image.convert("RGB")), cv2.COLOR_RGB2BGR)
 
 
 # 延迟导入 cv2，避免基类 import 时强依赖
-import cv2  # noqa: E402
+import cv2

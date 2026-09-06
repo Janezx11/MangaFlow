@@ -22,10 +22,12 @@ class TextNormalizer:
 
     def _unify_punctuation(self, text: str) -> str:
         """统一中英文标点"""
+        # 英文引号 → 中文引号（按位置区分开/闭：位于行首或空白/开头标点之后视为开引号）
+        text = re.sub(r'(^|[\s（(【\[])"', r"\1“", text)
+        text = text.replace('"', "”")
+        text = re.sub(r"(^|[\s（(【\[])'", r"\1‘", text)
+        text = text.replace("'", "’")
         replacements = {
-            # 英文引号 → 中文引号
-            '"': '“', '"': '”',
-            "'": '‘', "'": '’',
             # 省略号
             "...": "…",
             "..": "…",

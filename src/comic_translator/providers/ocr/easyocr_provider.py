@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import logging
 from typing import Any
 
 from loguru import logger
@@ -9,6 +8,7 @@ from comic_translator.providers.ocr.base import OCRProvider
 
 if False:
     from PIL import Image
+
     from comic_translator.models.ocr_block import OCRBlock
 
 

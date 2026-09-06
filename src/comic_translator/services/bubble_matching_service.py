@@ -27,7 +27,6 @@ from loguru import logger
 from comic_translator.models.bubble import Bubble, DialogueBlock
 from comic_translator.models.normalized_ocr_block import NormalizedOCRBlock
 
-
 # 匹配阈值
 DIRECT_MATCH_THRESHOLD = 0.50
 CANDIDATE_THRESHOLD = 0.25
@@ -109,7 +108,7 @@ class BubbleMatchingService:
             if not assigned:
                 continue
             merged = self._merge_ocr_texts(assigned)
-            merged_bbox = self._merge_bboxes(assigned)
+            self._merge_bboxes(assigned)
             blocks.append(DialogueBlock(
                 id=bubble.id,
                 bubble=bubble,
@@ -139,7 +138,7 @@ class BubbleMatchingService:
         blocks.sort(key=lambda d: (d.bubble.bbox[1], d.bubble.bbox[0]))
 
         # 5. 输出统计
-        matched = len(blocks) - len(unassigned)
+        len(blocks) - len(unassigned)
         rate = (self._stats["direct"] + self._stats["candidate"]) / max(len(ocr_blocks), 1) * 100
         logger.info(
             f"Matching V2: {len(blocks)} dialogues, "
@@ -243,28 +242,29 @@ class BubbleMatchingService:
             # 创建两个子 block，各自带完整文本
             # 不切分文本——几何比例切文本不可靠，且分裂后两个气泡都有内容
             # 比"一个气泡空着、另一个气泡揉着两段话"好得多
-            split_kwargs = dict(
-                id=id_a,
-                page=block.page,
-                bbox=split_a_bbox,
-                text=block.text,
-                confidence=block.confidence,
-                language=block.language,
-                metadata=block.metadata,
-                reading_order=block.reading_order,
-                is_merged=False,
-                merged_from_ids=[],
-            )
+            split_kwargs = {
+                "id": id_a,
+                "page": block.page,
+                "bbox": split_a_bbox,
+                "text": block.text,
+                "confidence": block.confidence,
+                "language": block.language,
+                "metadata": block.metadata,
+                "reading_order": block.reading_order,
+                "is_merged": False,
+                "merged_from_ids": [],
+            }
             block_a = NormalizedOCRBlock(**split_kwargs)
             split_kwargs["id"] = id_b
             split_kwargs["bbox"] = split_b_bbox
             block_b = NormalizedOCRBlock(**split_kwargs)
 
-            result.append(left_block)
-            result.append(right_block)
+            result.append(block_a)
+            result.append(block_b)
 
+            split_pos = split_x if dx >= dy else split_y
             logger.debug(
-                f"Split OCR block {block.id} at x={split_x}: "
+                f"Split OCR block {block.id} at {'x' if dx >= dy else 'y'}={split_pos}: "
                 f"'{block.text[:40]}...' overlaps {b1_id} + {b2_id}"
             )
 
@@ -507,7 +507,7 @@ class BubbleMatchingService:
 
         # fallback: 从 polygon 构建 mask
         if len(bubble.polygon) >= 3:
-            x1, y1, x2, y2 = bubble.bbox
+            _x1, _y1, x2, y2 = bubble.bbox
             # 确保 mask 足够大
             h = max(y2 + 10, 100)
             w = max(x2 + 10, 100)

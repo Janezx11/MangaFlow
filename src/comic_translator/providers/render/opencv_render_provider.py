@@ -2,14 +2,13 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from loguru import logger
-
 from comic_translator.providers.render.base import RenderProvider
 
 if TYPE_CHECKING:
     from PIL import Image
-    from comic_translator.models.translation_block import TranslationBlock
+
     from comic_translator.models.result import RenderResult
+    from comic_translator.models.translation_block import TranslationBlock
 
 
 class OpenCVRenderProvider(RenderProvider):

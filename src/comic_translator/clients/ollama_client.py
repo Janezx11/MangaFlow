@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import asyncio
-from typing import AsyncIterator
+from collections.abc import AsyncIterator
 
 from httpx import AsyncClient, HTTPStatusError, RequestError
 
@@ -34,6 +34,12 @@ class OllamaClient(LLMClient):
         self._max_retries = max_retries
         self._client = AsyncClient(timeout=timeout, trust_env=False)
 
+    @staticmethod
+    def _payload(base: dict, temperature: float, max_tokens: int) -> dict:
+        """Ollama 的采样参数必须放在 options 里；顶层同名键会被静默忽略"""
+        base["options"] = {"temperature": temperature, "num_predict": max_tokens}
+        return base
+
     async def generate(
         self,
         prompt: str,
@@ -41,14 +47,12 @@ class OllamaClient(LLMClient):
         temperature: float = 0.0,
         max_tokens: int = 4096,
     ) -> str:
-        payload = {
+        payload = self._payload({
             "model": self.model,
             "prompt": prompt,
             "system": system_prompt or "",
-            "temperature": temperature,
-            "max_tokens": max_tokens,
             "stream": False,
-        }
+        }, temperature, max_tokens)
 
         last_exception: Exception | None = None
 
@@ -102,13 +106,11 @@ class OllamaClient(LLMClient):
         max_tokens: int = 4096,
     ) -> str:
         """使用 /api/chat 接口（新版 Ollama 推荐）"""
-        payload = {
+        payload = self._payload({
             "model": self.model,
             "messages": messages,
-            "temperature": temperature,
-            "max_tokens": max_tokens,
             "stream": False,
-        }
+        }, temperature, max_tokens)
 
         last_exception: Exception | None = None
 
@@ -161,18 +163,17 @@ class OllamaClient(LLMClient):
         temperature: float = 0.0,
         max_tokens: int = 4096,
     ) -> AsyncIterator[str]:
-        payload = {
+        payload = self._payload({
             "model": self.model,
             "prompt": prompt,
             "system": system_prompt or "",
-            "temperature": temperature,
-            "max_tokens": max_tokens,
             "stream": True,
-        }
+        }, temperature, max_tokens)
 
         last_exception: Exception | None = None
 
         for attempt in range(1, self._max_retries + 1):
+            yielded_any = False
             try:
                 async with self._client.stream(
                     "POST",
@@ -188,33 +189,30 @@ class OllamaClient(LLMClient):
                         data = json.loads(line)
                         chunk = data.get("response", "")
                         if chunk:
+                            yielded_any = True
                             yield chunk
                 return
 
-            except (RequestError, HTTPStatusError) as e:
+            except Exception as e:
+                # 已经输出过内容时禁止重试：重试会从头重发全部内容，
+                # 下游拼接后出现重复文本
+                if yielded_any:
+                    import logging
+                    logging.getLogger(__name__).error(
+                        f"Ollama stream interrupted after partial output: {e}"
+                    )
+                    raise
                 last_exception = e
                 status_code = getattr(e.response, "status_code", 0) if hasattr(e, "response") else 0
-                if (
-                    isinstance(e, RequestError)
-                    or (500 <= status_code < 600)
-                ) and attempt < self._max_retries:
+                retryable = isinstance(e, RequestError) or (
+                    isinstance(e, HTTPStatusError) and 500 <= status_code < 600
+                )
+                if retryable and attempt < self._max_retries:
                     sleep_time = min(2 ** attempt, 30)
                     import logging
                     logging.getLogger(__name__).warning(
                         f"Ollama stream failed (attempt {attempt}/{self._max_retries}, "
                         f"status={status_code}): {e}. Waiting {sleep_time}s..."
-                    )
-                    await asyncio.sleep(sleep_time)
-                else:
-                    raise
-            except Exception as e:
-                last_exception = e
-                if attempt < self._max_retries:
-                    sleep_time = min(2 ** attempt, 30)
-                    import logging
-                    logging.getLogger(__name__).warning(
-                        f"Ollama stream unexpected error (attempt {attempt}/{self._max_retries}): "
-                        f"{e}. Waiting {sleep_time}s..."
                     )
                     await asyncio.sleep(sleep_time)
                 else:

@@ -1,6 +1,8 @@
 from abc import ABC, abstractmethod
-from comic_translator.models.ocr_block import OCRBlock
+
 from PIL import Image
+
+from comic_translator.models.ocr_block import OCRBlock
 
 
 class OCRProvider(ABC):

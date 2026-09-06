@@ -30,19 +30,19 @@ class TokenBucketRateLimiter:
         Returns:
             float: 等待的秒数。
         """
-        wait_time = 0.0
+        waited_total = 0.0
         while True:
             async with self._lock:
                 self._refill()
                 if self._tokens >= 1.0:
                     self._tokens -= 1.0
-                    return wait_time
+                    return waited_total
                 # 下一个令牌需要等待的时间
                 wait_time = (1.0 - self._tokens) / self._rps
 
             # 在锁外等待，避免阻塞其他 acquire() 调用
             await asyncio.sleep(wait_time)
-            wait_time += wait_time  # 累积等待时间
+            waited_total += wait_time
 
     def _refill(self) -> None:
         """补充令牌"""

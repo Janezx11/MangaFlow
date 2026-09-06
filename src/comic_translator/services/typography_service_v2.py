@@ -31,13 +31,13 @@ from loguru import logger
 from comic_translator.models.typography_models import LineInfo, ParagraphLayout
 
 if TYPE_CHECKING:
-    from comic_translator.services.font_manager import FontManager
-    from comic_translator.services.bubble_layout_service import BubbleLayoutService
-    from comic_translator.services.shape_layout_solver import ShapeLayoutSolver
     from comic_translator.services.balanced_line_breaker import BalancedLineBreaker
-    from comic_translator.services.padding_solver import PaddingSolver
+    from comic_translator.services.bubble_layout_service import BubbleLayoutService
+    from comic_translator.services.font_manager import FontManager
     from comic_translator.services.font_size_solver import FontSizeSolver
     from comic_translator.services.optical_center_solver import OpticalCenterSolver
+    from comic_translator.services.padding_solver import PaddingSolver
+    from comic_translator.services.shape_layout_solver import ShapeLayoutSolver
 
 
 class TypographyServiceV2:
@@ -187,6 +187,7 @@ class TypographyServiceV2:
         image_shape: tuple[int, int],
         mask: np.ndarray | None = None,
         ocr_rect: tuple[int, int, int, int] | None = None,
+        preset_font_size: int | None = None,
     ) -> ParagraphLayout | None:
         """对单个气泡进行完整排版
 
@@ -201,6 +202,9 @@ class TypographyServiceV2:
         font_path = profile.font_path
         min_size = profile.min_size
         max_size = profile.max_size
+        # 精修模式：外部预设字号（编辑闭环里人工微调）时钳制求解区间
+        if preset_font_size and preset_font_size > 0:
+            min_size = max_size = int(preset_font_size)
         line_spacing = profile.line_spacing
 
         # === 无 polygon → singleton 块，走简单居中排版 ===

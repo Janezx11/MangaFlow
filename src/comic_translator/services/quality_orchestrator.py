@@ -9,10 +9,8 @@
 from __future__ import annotations
 
 import json
-import os
-import re
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, ClassVar
 
 from loguru import logger
 
@@ -28,7 +26,6 @@ if TYPE_CHECKING:
     from comic_translator.services.batch_ocr_service import BatchOCRService
     from comic_translator.services.batch_prompt_builder import BatchPromptBuilder
     from comic_translator.services.glossary_service import GlossaryService
-    from comic_translator.services.ocr_normalize_service import OCRNormalizeService
     from comic_translator.services.render_quality_service import RenderQualityService
 
 
@@ -36,7 +33,7 @@ class QualityOrchestrator:
     """质检编排器"""
 
     # 默认阈值
-    DEFAULT_THRESHOLDS = {
+    DEFAULT_THRESHOLDS: ClassVar[dict[str, Any]] = {
         "render_quality_min": 30.0,
         "translation_status_max": "FAIL",  # FAIL 必须重跑
         "length_ratio_min": 0.3,
@@ -75,6 +72,10 @@ class QualityOrchestrator:
             # 也尝试顶层 render_debug.json
             debug_files = sorted(render_path.glob("page_*_render_debug.json"))
 
+        if not debug_files:
+            # RenderQualityService 实际写盘位置: rendered/_debug/page_NNNN/render_debug.json
+            debug_files = sorted((render_path / "_debug").glob("page_*/render_debug.json"))
+
         logger.info(f"Found {len(debug_files)} render debug files in {render_path}")
 
         for df in debug_files:
@@ -88,9 +89,11 @@ class QualityOrchestrator:
         pages.sort(key=lambda p: p.page)
 
         # 计算汇总
+        # "合格"口径统一为 not needs_retry（与 auto_retry_pages 的重跑判定一致），
+        # 避免出现"总分达标但被标记需重跑"的页被计入合格率的矛盾。
         total = len(pages)
-        passed = sum(1 for p in pages if p.overall_score >= self._thresholds["overall_score_min"])
-        retry_passed = sum(1 for p in pages if p.retry_count > 0 and p.overall_score >= self._thresholds["overall_score_min"])
+        passed = sum(1 for p in pages if not p.needs_retry)
+        retry_passed = sum(1 for p in pages if p.retry_count > 0 and not p.needs_retry)
         manual = [p for p in pages if p.retry_count >= self._thresholds["max_retries"] and p.needs_retry]
         avg_render = sum(p.render_quality for p in pages) / total if total else 0.0
 
@@ -437,12 +440,12 @@ class QualityOrchestrator:
                     )
 
         # 7. 如果提供了渲染服务，执行渲染
-        if render_service and batch_output.pages:
-            pt = batch_output.pages[0]
+        pt = batch_output.pages[0] if batch_output.pages else None
+        if render_service and pt is not None:
             # 构建 DialogueBlock 用于渲染
             dialogue_blocks = self._build_dialogue_blocks(pt, batch_page)
             if dialogue_blocks:
-                render_result = render_service.render_page(
+                render_service.render_page(
                     image=image,
                     page=page,
                     dialogue_blocks=dialogue_blocks,
@@ -452,22 +455,21 @@ class QualityOrchestrator:
                 )
 
                 # 重新生成质检报告
-                render_debug_path = (
-                    Path(render_output_dir) / f"page_{page:04d}" / "render_debug.json"
-                )
-                if render_debug_path.exists():
+                # 兼容两种写盘布局：
+                #   RenderService:      rendered/page_NNNN/render_debug.json
+                #   RenderQualityService: rendered/_debug/page_NNNN/render_debug.json
+                page_num = f"page_{page:04d}"
+                candidates = [
+                    Path(render_output_dir) / page_num / "render_debug.json",
+                    Path(render_output_dir) / "_debug" / page_num / "render_debug.json",
+                    Path(render_output_dir) / f"{page_num}_render_debug.json",
+                ]
+                render_debug_path = next((p for p in candidates if p.exists()), None)
+                if render_debug_path is not None:
                     new_data = json.loads(render_debug_path.read_text(encoding="utf-8"))
                     new_report = self._parse_debug_to_report(new_data, render_debug_path)
                     new_report.retry_count = report.retry_count + 1
-                    new_report.retry_history = report.retry_history + [
-                        RetryRecord(
-                            attempt=report.retry_count + 1,
-                            reason=retry_reason,
-                            translation_status=new_report.translation_status,
-                            render_quality=new_report.render_quality,
-                            prompt_snippet=retry_reason[:100],
-                        )
-                    ]
+                    new_report.retry_history = [*report.retry_history, RetryRecord(attempt=report.retry_count + 1, reason=retry_reason, translation_status=new_report.translation_status, render_quality=new_report.render_quality, prompt_snippet=retry_reason[:100])]
                     return new_report
 
         # 8. 无渲染服务，只返回翻译级别的质检
@@ -497,14 +499,7 @@ class QualityOrchestrator:
             length_ratio=round(length_ratio, 2),
             overall_score=round(self._compute_overall_score(0, ti_status, length_ratio, 0, 0), 1),
             retry_count=report.retry_count + 1,
-            retry_history=report.retry_history + [
-                RetryRecord(
-                    attempt=report.retry_count + 1,
-                    reason=retry_reason,
-                    translation_status=ti_status,
-                    render_quality=0.0,
-                )
-            ],
+            retry_history=[*report.retry_history, RetryRecord(attempt=report.retry_count + 1, reason=retry_reason, translation_status=ti_status, render_quality=0.0)],
         )
         new_report.needs_retry, new_report.retry_reason = self._check_needs_retry(
             new_report.render_quality,

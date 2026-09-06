@@ -3,14 +3,12 @@
 from __future__ import annotations
 
 import re
-from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
 
 from comic_translator.models.render_models import QAResult
 
 if TYPE_CHECKING:
-    from comic_translator.models.normalized_ocr_block import NormalizedOCRBlock
-    from comic_translator.models.render_models import RenderBlock
+    pass
 
 
 class RenderQAService:
@@ -37,21 +35,21 @@ class RenderQAService:
 
         for block in render_blocks:
             bid = getattr(block, "ocr_block_id", "") or getattr(block, "id", "?")
-            layout = getattr(block, "layout", None)
             translated = getattr(block, "translated_text", "") or getattr(block, "text", "")
 
-            # Overflow check
-            if layout:
-                x1, y1, x2, y2 = layout.bbox if hasattr(layout, 'bbox') else (0, 0, 0, 0)
+            # Overflow check —— DialogueBlock 没有 layout 字段，用 bubble bbox
+            bubble = getattr(block, "bubble", None)
+            if bubble is not None and getattr(bubble, "bbox", None):
+                _x1, _y1, x2, y2 = bubble.bbox
                 if x2 > image_width or y2 > image_height:
                     qa.add_issue(f"[{bid}] Overflow: text exceeds image bounds")
                     qa.overflow_blocks.append(bid)
 
-            # Tiny font check
-            if layout and hasattr(layout, 'font_size'):
-                if layout.font_size < self.MIN_FONT_SIZE:
-                    qa.add_issue(f"[{bid}] Tiny font: size={layout.font_size}")
-                    qa.tiny_font_blocks.append(bid)
+            # Tiny font check —— font_size 为 0 表示排版未执行，跳过
+            font_size = getattr(block, "font_size", 0)
+            if 0 < font_size < self.MIN_FONT_SIZE:
+                qa.add_issue(f"[{bid}] Tiny font: size={font_size}")
+                qa.tiny_font_blocks.append(bid)
 
             # English residue check
             if translated:

@@ -1,7 +1,8 @@
 from pydantic import BaseModel, Field
+
+from comic_translator.models.glossary import GlossaryEntry
 from comic_translator.models.normalized_ocr_block import NormalizedOCRBlock
 from comic_translator.models.translation_block import TranslationBlock
-from comic_translator.models.glossary import GlossaryEntry
 
 
 class BatchPage(BaseModel):
@@ -29,6 +30,8 @@ class BatchInput(BaseModel):
     comic_style: str = "western_comic"
     source_language: str = "en"
     target_language: str = "zh"
+    # 传给 prompt builder 的附加上下文（如重试原因说明）
+    entity_context: str = ""
 
 
 class BatchOutput(BaseModel):

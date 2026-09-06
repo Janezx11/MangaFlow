@@ -2,14 +2,12 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from loguru import logger
-
-from comic_translator.clients.base import LLMClient
 from comic_translator.providers.qa.base import QAProvider
 
 if TYPE_CHECKING:
+    from comic_translator.clients.base import LLMClient
+    from comic_translator.models.context import QAReport, TranslationContext
     from comic_translator.models.translation_block import TranslationBlock
-    from comic_translator.models.context import TranslationContext, QAReport
 
 
 class GemmaQAProvider(QAProvider):

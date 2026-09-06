@@ -16,9 +16,7 @@ from __future__ import annotations
 
 import asyncio
 import re
-from pathlib import Path
 
-import numpy as np
 from loguru import logger
 from PIL import Image
 
@@ -95,9 +93,9 @@ class LocateAnythingProvider(VisionDetectionProvider):
             logger.warning("LocateAnything3B: not available, returning empty")
             return []
 
-        self._ensure_model()
-
         try:
+            # 懒初始化（加载 3B 模型）放在线程里，避免阻塞事件循环
+            await asyncio.to_thread(self._ensure_model)
             return await asyncio.to_thread(self._run_detection, image)
         except Exception as e:
             logger.error(f"LocateAnything3B detection failed: {e}")

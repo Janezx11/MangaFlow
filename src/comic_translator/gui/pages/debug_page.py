@@ -11,8 +11,8 @@ import json
 from pathlib import Path
 
 import gradio as gr
-from PIL import Image
 from loguru import logger
+from PIL import Image
 
 from comic_translator.gui.components.detection_overlay import (
     bgr_to_pil,
@@ -24,14 +24,13 @@ from comic_translator.gui.services.run_history_service import RunHistoryService
 from comic_translator.models.detection_region import DetectionRegion
 from comic_translator.models.normalized_ocr_block import NormalizedOCRBlock
 
-
 MEMORY_SOURCE = "当前内存"
 HISTORY_PREFIX = "历史:"
 
 
 def _detect_mismatch(d: dict) -> str:
     """检测翻译/渲染不一致"""
-    source = (d.get("merged_text") or "").strip()
+    (d.get("merged_text") or "").strip()
     translated = (d.get("translated_text") or "").strip()
     render_text = (d.get("render_text") or "").strip()
     trans_status = d.get("translation_status", "")
@@ -223,20 +222,20 @@ def create_debug_page(
 
     # ---------- 显示单页 ----------
 
-    EMPTY = (None, None, None, None, "未选择页面", [], [], [], "", "未选择页面")
+    empty_page = (None, None, None, None, "未选择页面", [], [], [], "", "未选择页面")
 
     def _empty_full():
         """返回 10 个空输出（与 page_outputs 对应）"""
-        return EMPTY
+        return empty_page
 
     def show_page(source, page_str):
         if not page_str:
-            return EMPTY
+            return empty_page
 
         try:
             page_num = int(page_str.split(":")[0].replace("第 ", "").replace(" 页", ""))
         except (ValueError, IndexError):
-            return (*EMPTY[:4], "页面编号无效", [], [], [], "", "页面编号无效")
+            return (*empty_page[:4], "页面编号无效", [], [], [], "", "页面编号无效")
 
         if source == MEMORY_SOURCE:
             return _show_from_memory(page_num)
@@ -364,7 +363,7 @@ def create_debug_page(
         if img is None:
             return (None, None, None, None,
                     f"找不到图片: {snap.file_name} (搜索: {input_dir}, data/comics, data/input)",
-                    [], [], [], "")
+                    [], [], [], "", "")
 
         orig = img.copy()
 
@@ -387,8 +386,9 @@ def create_debug_page(
                 blocks = [NormalizedOCRBlock(**b) for b in snap.ocr_blocks]
                 ocr_bgr = draw_ocr_overlay(img, blocks)
                 ocr_overlay = bgr_to_pil(ocr_bgr)
-            except Exception:
-                pass
+            except Exception as e:
+                # 与检测分支一致：把失败原因写进元信息，而不是静默丢弃覆盖图
+                meta_extra += f"\n\n**OCR 覆盖图错误**: {e}"
 
         rendered = _find_rendered(snap.page, snap.rendered_path)
 
@@ -443,25 +443,25 @@ def create_debug_page(
     def retry_failed_bubbles(source, page_str):
         """重试当前页所有翻译失败的气泡，重新渲染并刷新显示"""
         if source != MEMORY_SOURCE:
-            return ("仅支持对「当前内存」数据源重试失败气泡。\n\n"
-                    "历史运行记录请回到流水线页重新运行。",) + _empty_full()
+            return ("仅支持对「当前内存」数据源重试失败气泡。\n\n" "历史运行记录请回到流水线页重新运行。", *_empty_full())
 
         try:
             page_num = int(page_str.split(":")[0].replace("第 ", "").replace(" 页", ""))
         except (ValueError, IndexError, AttributeError):
-            return ("页面编号无效。",) + _empty_full()
+            return ("页面编号无效。", *_empty_full())
 
         result = pipeline_service.get_result(page_num)
         if result is None:
-            return (f"第 {page_num} 页无结果。",) + _empty_full()
+            return (f"第 {page_num} 页无结果。", *_empty_full())
 
         dialogues = result.dialogues
         failed = [d for d in dialogues if d.merged_text.strip() and d.translation_status == "failed"]
         if not failed:
-            return ("本页没有失败气泡，无需重试。",) + _show_from_memory(page_num)
+            return ("本页没有失败气泡，无需重试。", *_show_from_memory(page_num))
 
         # 在线程中跑 async 重试 + 渲染
         import asyncio
+
         from comic_translator.gui.services.gui_pipeline_service import GuiPipelineService
 
         def _do_retry():
@@ -474,10 +474,13 @@ def create_debug_page(
                 )
                 # 重新渲染该页（render_service 从 pipeline_service 获取）
                 if pipeline_service.render_service is not None:
-                    img_path = Path(f"data/comics/{result.file_name}")
-                    if not img_path.exists():
-                        img_path = Path(f"data/input/{result.file_name}")
-                    if img_path.exists():
+                    # 找图优先用当前 run 记录的真实 input_dir，再退回历史默认目录
+                    img_path = _find_image(
+                        result.file_name,
+                        extra_dir=get_run_input_dir(pipeline_service.current_run_id)
+                        if pipeline_service.current_run_id else None,
+                    )
+                    if img_path is not None:
                         img = Image.open(img_path)
                         render_opts = {"fallback_to_source": True}
                         render_res = pipeline_service.render_service.render_page(
@@ -491,7 +494,7 @@ def create_debug_page(
             _do_retry()
         except Exception as e:
             logger.error(f"Retry failed bubbles error: {e}")
-            return (f"重试出错: {e}",) + _show_from_memory(page_num)
+            return (f"重试出错: {e}", *_show_from_memory(page_num))
 
         # 重试后刷新显示
         remaining_failed = sum(
@@ -503,12 +506,12 @@ def create_debug_page(
             if remaining_failed
             else f"已重试 {len(failed)} 个失败气泡，全部成功 ✅"
         )
-        return (msg,) + _show_from_memory(page_num)
+        return (msg, *_show_from_memory(page_num))
 
     retry_failed_btn.click(
         fn=retry_failed_bubbles,
         inputs=[source_dropdown, page_selector],
-        outputs=[retry_status_md] + page_outputs,
+        outputs=[retry_status_md, *page_outputs],
     )
 
     refresh_btn.click(

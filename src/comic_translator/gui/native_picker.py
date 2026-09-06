@@ -48,11 +48,15 @@ def _make_callback(initial_dir: str):
     ]
     user32.SendMessageW.restype = wintypes.LPARAM
 
+    # 缓冲区必须在闭包里保持存活：回调触发时 c_wchar_p 临时对象早已被
+    # GC 回收，lParam 会指向已释放内存（use-after-free）
+    _dir_buf = ctypes.create_unicode_buffer(initial_dir) if initial_dir else None
+
     @_BFFCALLBACK
     def _cb(hwnd, u_msg, _l_param, _lp_data):
-        if u_msg == _BFFM_INITIALIZED and initial_dir:
+        if u_msg == _BFFM_INITIALIZED and _dir_buf is not None:
             # 传整型地址作为 lParam（指针不能 cast 成整型类型，先转 c_void_p 取地址值）
-            lparam = ctypes.cast(ctypes.c_wchar_p(initial_dir), ctypes.c_void_p).value
+            lparam = ctypes.cast(_dir_buf, ctypes.c_void_p).value
             user32.SendMessageW(hwnd, _BFFM_SETSELECTION, 1, lparam)
         return 0
 

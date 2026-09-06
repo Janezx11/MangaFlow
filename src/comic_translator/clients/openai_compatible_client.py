@@ -1,10 +1,16 @@
 from __future__ import annotations
 
 import asyncio
-from typing import AsyncIterator
+from collections.abc import AsyncIterator
 
 from loguru import logger
-from openai import AsyncOpenAI, APIError, APITimeoutError, RateLimitError
+from openai import (
+    APIConnectionError,
+    APIError,
+    APITimeoutError,
+    AsyncOpenAI,
+    RateLimitError,
+)
 
 from comic_translator.clients.base import LLMClient
 from comic_translator.utils.rate_limiter import TokenBucketRateLimiter
@@ -46,6 +52,7 @@ class OpenAICompatibleClient(LLMClient):
             burst: 令牌桶突发容量，默认 rps * 2
         """
         self.model = model
+        self.api_key = api_key
         self._max_retries = max_retries
         base_url = base_url.rstrip("/")
         if not base_url.endswith("/v1"):
@@ -71,6 +78,12 @@ class OpenAICompatibleClient(LLMClient):
             messages.append({"role": "system", "content": system_prompt})
         messages.append({"role": "user", "content": prompt})
 
+        if not self.api_key:
+            raise RuntimeError(
+                "API key is not configured — set llm.api.api_key in config.yaml "
+                "or export the referenced environment variable"
+            )
+
         last_exception: Exception | None = None
 
         for attempt in range(1, self._max_retries + 1):
@@ -87,6 +100,9 @@ class OpenAICompatibleClient(LLMClient):
                     temperature=temperature,
                     max_tokens=max_tokens,
                 )
+                if not response.choices:
+                    # 200 但空 choices（内容过滤/上游错误）：确定性失败，重试无意义
+                    raise ValueError("API returned 200 with empty choices (content may be filtered)")
                 return response.choices[0].message.content or ""
 
             except RateLimitError as e:
@@ -115,6 +131,22 @@ class OpenAICompatibleClient(LLMClient):
                 else:
                     logger.error(f"Request timed out after {self._max_retries} attempts")
 
+            except APIConnectionError as e:
+                # 连接层错误（DNS 失败/连接重置等）——可重试。
+                # 注意：APIConnectionError 是 APIError 的子类且没有 status_code，
+                # 必须在 except APIError 之前捕获，否则会落到"非 5xx 不重试"分支。
+                last_exception = e
+                if attempt < self._max_retries:
+                    sleep_time = min(2 ** attempt * 2, 30)
+                    logger.warning(
+                        f"Connection error on attempt {attempt}/{self._max_retries}: {e}. "
+                        f"Waiting {sleep_time:.0f}s before retry..."
+                    )
+                    await asyncio.sleep(sleep_time)
+                else:
+                    logger.error(f"Connection failed after {self._max_retries} attempts: {e}")
+                    raise
+
             except APIError as e:
                 last_exception = e
                 status_code = getattr(e, "status_code", 0)
@@ -132,6 +164,10 @@ class OpenAICompatibleClient(LLMClient):
                         f"API error ({status_code}) on attempt {attempt}: {e}"
                     )
                     raise
+
+            except ValueError:
+                # 确定性响应错误（如空 choices），重试不会改变结果
+                raise
 
             except Exception as e:
                 # 网络错误等可重试的异常
@@ -164,9 +200,16 @@ class OpenAICompatibleClient(LLMClient):
             messages.append({"role": "system", "content": system_prompt})
         messages.append({"role": "user", "content": prompt})
 
+        if not self.api_key:
+            raise RuntimeError(
+                "API key is not configured — set llm.api.api_key in config.yaml "
+                "or export the referenced environment variable"
+            )
+
         last_exception: Exception | None = None
 
         for attempt in range(1, self._max_retries + 1):
+            yielded_any = False
             try:
                 # 速率限制等待
                 await self._rate_limiter.acquire()
@@ -181,59 +224,38 @@ class OpenAICompatibleClient(LLMClient):
                 async for chunk in stream:
                     delta = chunk.choices[0].delta if chunk.choices else None
                     if delta and delta.content:
+                        yielded_any = True
                         yield delta.content
                 # 流式成功完成，退出重试循环
                 return
 
-            except RateLimitError as e:
-                last_exception = e
-                retry_after = self._parse_retry_after(e)
-                if attempt < self._max_retries:
-                    sleep_time = retry_after or min(2 ** attempt * 2, 60)
-                    logger.warning(
-                        f"Rate limited (429) on stream attempt {attempt}/{self._max_retries}. "
-                        f"Waiting {sleep_time:.0f}s..."
-                    )
-                    await asyncio.sleep(sleep_time)
-                else:
-                    logger.error(f"Rate limit persisted after {self._max_retries} attempts")
-
-            except APITimeoutError as e:
-                last_exception = e
-                if attempt < self._max_retries:
-                    sleep_time = min(2 ** attempt * 2, 30)
-                    logger.warning(
-                        f"Stream timeout on attempt {attempt}/{self._max_retries}. "
-                        f"Waiting {sleep_time:.0f}s..."
-                    )
-                    await asyncio.sleep(sleep_time)
-                else:
-                    logger.error(f"Stream timed out after {self._max_retries} attempts")
-
-            except APIError as e:
-                last_exception = e
-                status_code = getattr(e, "status_code", 0)
-                if 500 <= status_code < 600 and attempt < self._max_retries:
-                    sleep_time = min(2 ** attempt * 2, 30)
-                    logger.warning(
-                        f"Server error ({status_code}) on stream attempt {attempt}. "
-                        f"Waiting {sleep_time:.0f}s..."
-                    )
-                    await asyncio.sleep(sleep_time)
-                else:
-                    raise
-
             except Exception as e:
-                last_exception = e
-                if attempt < self._max_retries:
-                    sleep_time = min(2 ** attempt * 2, 30)
-                    logger.warning(
-                        f"Stream failed on attempt {attempt}/{self._max_retries}: {e}. "
-                        f"Waiting {sleep_time:.0f}s..."
-                    )
-                    await asyncio.sleep(sleep_time)
-                else:
+                # 已经向下游输出过内容时不能重试：重试会从头重发全部内容，
+                # 导致下游拼接出重复文本。此时只能把错误抛给调用方。
+                if yielded_any:
+                    logger.error(f"Stream interrupted after partial output: {e}")
                     raise
+                last_exception = e
+                retry_after = self._parse_retry_after(e) if isinstance(e, RateLimitError) else None
+                is_rate_limit = isinstance(e, RateLimitError)
+                if isinstance(e, (APIConnectionError, APITimeoutError)) or (
+                    is_rate_limit
+                ) or (isinstance(e, APIError) and 500 <= getattr(e, "status_code", 0) < 600):
+                    if attempt < self._max_retries:
+                        if is_rate_limit:
+                            sleep_time = retry_after or min(2 ** attempt * 2, 60)
+                        else:
+                            sleep_time = min(2 ** attempt * 2, 30)
+                        logger.warning(
+                            f"Stream failed on attempt {attempt}/{self._max_retries}: {e}. "
+                            f"Waiting {sleep_time:.0f}s..."
+                        )
+                        await asyncio.sleep(sleep_time)
+                        continue
+                    logger.error(f"Stream failed after {self._max_retries} attempts: {e}")
+                else:
+                    logger.error(f"Stream failed with non-retryable error: {e}")
+                raise
 
         raise RuntimeError(
             f"Stream request failed after {self._max_retries} attempts"

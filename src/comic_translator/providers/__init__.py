@@ -1,6 +1,6 @@
 # providers 包 __init__
 
-from comic_translator.providers.base import *
+from comic_translator.providers.base import *  # noqa: F403
 
 # Bubble Detection Providers
 from comic_translator.providers.bubble import BubbleProvider, YOLO11BubbleProvider
@@ -10,18 +10,18 @@ from comic_translator.providers.text_detection import TextDetectorProvider
 
 # Vision Detection Providers
 from comic_translator.providers.vision import (
-    VisionDetectionProvider,
     CTBDVisionAdapter,
-    YOLOVisionAdapter,
     LocateAnythingProvider,
+    VisionDetectionProvider,
+    YOLOVisionAdapter,
 )
 
 __all__ = [
     "BubbleProvider",
-    "YOLO11BubbleProvider",
+    "CTBDVisionAdapter",
+    "LocateAnythingProvider",
     "TextDetectorProvider",
     "VisionDetectionProvider",
-    "CTBDVisionAdapter",
+    "YOLO11BubbleProvider",
     "YOLOVisionAdapter",
-    "LocateAnythingProvider",
 ]

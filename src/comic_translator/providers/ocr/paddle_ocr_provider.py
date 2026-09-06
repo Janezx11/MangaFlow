@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import logging
 import sys
 from typing import Any
 
@@ -10,6 +9,7 @@ from comic_translator.providers.ocr.base import OCRProvider
 
 if False:
     from PIL import Image
+
     from comic_translator.models.ocr_block import OCRBlock
 
 
@@ -52,8 +52,8 @@ class PaddleOCRProvider(OCRProvider):
             return
         self._versions_logged = True
         try:
-            import paddleocr
             import paddle
+            import paddleocr
             logger.info(
                 f"PaddleOCRProvider: "
                 f"paddleocr={paddleocr.__version__}, "
@@ -67,8 +67,9 @@ class PaddleOCRProvider(OCRProvider):
     async def detect_text(self, image: Image.Image) -> list[OCRBlock]:
         import asyncio
 
-        self._ensure_initialized()
         try:
+            # 懒初始化（可能构建 PaddleOCR 实例）放在线程里，避免阻塞事件循环
+            await asyncio.to_thread(self._ensure_initialized)
             raw_results = await asyncio.to_thread(self._run_ocr, image)
             return self._convert_results(raw_results, page=0)
         except Exception as e:

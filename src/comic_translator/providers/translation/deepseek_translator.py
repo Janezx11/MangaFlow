@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import re
 from typing import TYPE_CHECKING
 
 from loguru import logger
@@ -9,8 +10,8 @@ from comic_translator.clients.base import LLMClient
 from comic_translator.providers.translation.base import TranslationProvider
 
 if TYPE_CHECKING:
-    from comic_translator.models.translation_block import TranslationBlock
     from comic_translator.models.context import TranslationContext
+    from comic_translator.models.translation_block import TranslationBlock
 
 
 class DeepSeekTranslator(TranslationProvider):
@@ -20,6 +21,9 @@ class DeepSeekTranslator(TranslationProvider):
     将所有文本块打包到一次 LLM 调用中批量翻译，
     返回 JSON 格式结果，按 id 映射到每个 TranslationBlock。
     """
+
+    # 从 JSON 残片行中提取 translated/translated_text 值（fallback parse 用）
+    _TRANSLATED_VALUE_RE = re.compile(r'"translated(?:_text)?"\s*:\s*"([^"]*)"')
 
     def __init__(self, client: LLMClient, model: str = "deepseek-chat") -> None:
         self._client = client
@@ -79,7 +83,7 @@ class DeepSeekTranslator(TranslationProvider):
             user_prompt_parts.append(f"\n{character_text}")
         if context.translation_memory:
             tm_lines = [f"  {tm.source_text} → {tm.translated_text}" for tm in context.translation_memory]
-            user_prompt_parts.append(f"\nTranslation Memory (use these as reference):\n" + "\n".join(tm_lines))
+            user_prompt_parts.append("\nTranslation Memory (use these as reference):\n" + "\n".join(tm_lines))
         if context.page_summary:
             user_prompt_parts.append(f"\nContext from previous pages:\n{context.page_summary}")
         user_prompt_parts.append(
@@ -98,11 +102,12 @@ class DeepSeekTranslator(TranslationProvider):
             )
             return self._parse_response(response, blocks)
         except Exception as e:
-            logger.exception(f"Translation failed")
+            logger.exception("Translation failed")
             logger.error(f"  Message: {e}")
-            # Fallback: return blocks with source text as translated text
+            # 失败时留空 translated_text：渲染层按 failed 处理并尊重
+            # fallback_to_source，不把英文原文伪装成"已翻译"
             for block in blocks:
-                block.translated_text = block.source_text
+                block.translated_text = ""
             return blocks
 
     async def translate_single(
@@ -156,7 +161,8 @@ class DeepSeekTranslator(TranslationProvider):
             translated = id_map.get(block.id) or id_map.get(block.ocr_block_id, "")
             if not translated:
                 logger.warning(f"Block {block.id}: no translation found in model response")
-            block.translated_text = translated if translated else block.source_text
+            # 缺译文时留空（失败状态），而不是拿英文原文冒充译文
+            block.translated_text = translated
 
         # Positional fallback for any blocks still empty
         for i, block in enumerate(blocks):
@@ -166,21 +172,30 @@ class DeepSeekTranslator(TranslationProvider):
                     block.translated_text = (
                         parsed[i].get("translated", "")
                         or parsed[i].get("translated_text", "")
-                        or block.source_text
+                        or ""
                     )
                 else:
-                    block.translated_text = block.source_text
+                    block.translated_text = ""
 
         return blocks
 
     def _fallback_parse(
         self, response: str, blocks: list[TranslationBlock]
     ) -> list[TranslationBlock]:
-        """JSON 解析失败时的回退方案：按行匹配"""
-        lines = [l.strip() for l in response.split("\n") if l.strip()]
+        """JSON 解析失败时的回退方案：按行匹配
+
+        跳过 JSON 语法残片行（如 {"id": "b1", ...},），只提取真正的译文；
+        提取不到的块留空（失败状态），不把 JSON 残片或英文原文当译文渲染。
+        """
+        lines = [line.strip() for line in response.split("\n") if line.strip()]
+        values: list[str] = []
+        for line in lines:
+            if line.startswith(("{", "[", "}", "]", '"id"')):
+                m = self._TRANSLATED_VALUE_RE.search(line)
+                if m:
+                    values.append(m.group(1))
+                continue
+            values.append(line)
         for i, block in enumerate(blocks):
-            if i < len(lines):
-                block.translated_text = lines[i]
-            else:
-                block.translated_text = block.source_text
+            block.translated_text = values[i] if i < len(values) else ""
         return blocks

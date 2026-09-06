@@ -10,7 +10,6 @@ from comic_translator.gui.services.dataset_service import DatasetService
 from comic_translator.gui.services.model_registry_service import ModelRegistryService
 from comic_translator.gui.services.training_service import TrainingService
 
-
 BASE_MODELS = [
     ("YOLO11n-seg (nano, 快)", "models/bubble/yolo11n-seg.pt"),
     ("YOLO11m-seg (medium, 准)", "models/bubble/yolo11m-seg.pt"),
@@ -135,6 +134,8 @@ def create_training_page(
         pt = Path(status.output_path)
         if not pt.exists():
             return f"模型文件不存在: {pt}"
+        if status.return_code != 0:
+            return "训练未成功完成，禁止注册（防止把旧文件注册进模型库）"
         try:
             registry_service.register(
                 pt_path=str(pt),
