@@ -10,6 +10,14 @@ from comic_translator.gui.services import edit_service
 
 def create_edit_page(pipeline_service, history_service):
     """创建精修工坊标签页"""
+
+    def list_run_ids() -> list[str]:
+        if history_service is None:
+            return []
+        return [r.id for r in history_service.list_runs()]
+
+    _run_ids = list_run_ids()
+
     with gr.Column(elem_classes="mf-page"):
         gr.Markdown("精修工坊", elem_classes="mf-page-title")
         gr.Markdown(
@@ -18,7 +26,12 @@ def create_edit_page(pipeline_service, history_service):
         )
 
         with gr.Row():
-            run_dropdown = gr.Dropdown(label="选择运行", choices=[], scale=3)
+            run_dropdown = gr.Dropdown(
+                label="选择运行",
+                choices=_run_ids,
+                value=_run_ids[0] if _run_ids else None,
+                scale=3,
+            )
             page_num = gr.Number(label="页码", value=1, precision=0, scale=1)
             load_btn = gr.Button("加载对白", variant="primary", scale=1)
 
@@ -52,14 +65,6 @@ def create_edit_page(pipeline_service, history_service):
             preview = gr.Image(label="重渲染结果", interactive=False, scale=3)
 
     # ---------- 逻辑 ----------
-
-    def refresh_runs():
-        if history_service is None:
-            return gr.update(choices=[], value=None), "历史服务未启用"
-        runs = history_service.list_runs()
-        choices = [r.id for r in runs]
-        label = f"共 {len(choices)} 次运行"
-        return gr.update(choices=choices, value=choices[0] if choices else None), label
 
     def load_dialogues(run_id, page):
         if history_service is None or not run_id:
@@ -132,9 +137,6 @@ def create_edit_page(pipeline_service, history_service):
             logger.error(f"Re-render failed: {e}")
             return f"重渲染失败: {e}", None
 
-    runs_loaded = refresh_runs()
-    run_dropdown.choices = runs_loaded[0].get("choices", [])
-    run_dropdown.value = runs_loaded[0].get("value")
 
     # ---------- 绑定 ----------
 
