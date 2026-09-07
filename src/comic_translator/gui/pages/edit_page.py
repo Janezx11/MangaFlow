@@ -142,10 +142,18 @@ def create_edit_page(pipeline_service, history_service):
                 history_service=history_service,
             )
             logger.info(msg)
-            return msg, rendered or None
+            # 画布同步刷新为新渲染结果（旧画布会让人误以为没生效）
+            new_canvas = None
+            snapshot = history_service.load_page(run_id, int(page or 1))
+            if snapshot is not None:
+                snapshot.rendered_path = rendered or snapshot.rendered_path
+                typo_all = edit_service.load_typography_params(snapshot)
+                new_canvas = edit_service.draw_selection_overlay(
+                    rendered or snapshot.rendered_path, snapshot, typo_all)
+            return msg, rendered or None, new_canvas
         except Exception as e:
             logger.error(f"Re-render failed: {e}")
-            return f"重渲染失败: {e}", None
+            return f"重渲染失败: {e}", None, None
 
 
     # ---------- 绑定 ----------
@@ -229,5 +237,5 @@ def create_edit_page(pipeline_service, history_service):
     rerender_btn.click(
         fn=apply_and_rerender,
         inputs=[run_dropdown, page_num, dlg_table, sel_id, sel_text, sel_font, sel_dx, sel_dy],
-        outputs=[status_md, preview],
+        outputs=[status_md, preview, canvas],
     )

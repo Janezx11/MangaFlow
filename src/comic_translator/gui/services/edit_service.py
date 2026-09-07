@@ -134,9 +134,6 @@ def snapshot_to_dialogues(
     # ---- 重建 OCR 原文块并归属到对白 ----
     # 擦除蒙版（ocr_mask provider）依赖 db.ocr_blocks 的 bbox 定位原文区域；
     # 不挂载则蒙版为空 → 原文不会被擦除，译文直接叠在英文上。
-    def _norm(t: str) -> str:
-        return _RE_NONWS.sub("", (t or "").lower())
-
     page_ocr_blocks = []
     for ob in snapshot.ocr_blocks or []:
         try:
@@ -152,24 +149,37 @@ def snapshot_to_dialogues(
             continue
 
     if blocks and page_ocr_blocks:
+        # 几何归属：OCR 块中心落在哪个气泡框内（或与框重叠最大）就归谁。
+        # 文本包含匹配在多对白页不可靠（拼接顺序/空白不一致）。
+        def _center(ob):
+            x1, y1, x2, y2 = ob.bbox
+            return (x1 + x2) / 2, (y1 + y2) / 2
+
         assigned: dict[int, list] = {}
         leftovers = []
         for ob in page_ocr_blocks:
-            key = _norm(ob.text)
-            hit = None
-            if key:
-                for idx, blk in enumerate(blocks):
-                    if key and key in _norm(blk.merged_text):
-                        hit = idx
-                        break
-            if hit is None:
+            cx, cy = _center(ob)
+            best_idx, best_area = None, 0
+            for idx, blk in enumerate(blocks):
+                bx1, by1, bx2, by2 = blk.bubble.bbox
+                if bx1 <= cx <= bx2 and by1 <= cy <= by2:
+                    area = (bx2 - bx1) * (by2 - by1)
+                    if best_area == 0 or area < best_area:  # 嵌套时取最小包含框
+                        best_idx, best_area = idx, area
+            if best_idx is None:
                 leftovers.append(ob)
             else:
-                assigned.setdefault(hit, []).append(ob)
-        # 未匹配的原文块挂到最长的对白，保证擦除覆盖不漏
+                assigned.setdefault(best_idx, []).append(ob)
+        # 未命中的挂到中心距离最近的气泡，保证擦除覆盖不漏
         if leftovers:
-            longest = max(range(len(blocks)), key=lambda i: len(blocks[i].merged_text))
-            assigned.setdefault(longest, []).extend(leftovers)
+            for ob in leftovers:
+                cx, cy = _center(ob)
+                nearest = min(
+                    range(len(blocks)),
+                    key=lambda i: abs((blocks[i].bubble.bbox[0] + blocks[i].bubble.bbox[2]) / 2 - cx)
+                    + abs((blocks[i].bubble.bbox[1] + blocks[i].bubble.bbox[3]) / 2 - cy),
+                )
+                assigned.setdefault(nearest, []).append(ob)
         for idx, obs in assigned.items():
             blocks[idx].ocr_blocks = obs
 
