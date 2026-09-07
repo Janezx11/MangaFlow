@@ -32,6 +32,7 @@ def create_edit_page(pipeline_service, history_service):
                 value=_run_ids[0] if _run_ids else None,
                 scale=3,
             )
+            refresh_runs_btn = gr.Button("刷新列表", scale=1)
             page_num = gr.Number(label="页码", value=1, precision=0, scale=1)
             load_btn = gr.Button("加载对白", variant="primary", scale=1)
 
@@ -140,6 +141,17 @@ def create_edit_page(pipeline_service, history_service):
 
 
     # ---------- 绑定 ----------
+
+    def refresh_runs_now():
+        ids = list_run_ids()
+        msg = f"共 {len(ids)} 次运行（刚完成的批次会出现在最上方）"
+        return gr.update(choices=ids, value=ids[0] if ids else None), msg
+
+    refresh_runs_btn.click(
+        fn=refresh_runs_now,
+        inputs=[],
+        outputs=[run_dropdown, status_md],
+    )
 
     load_btn.click(
         fn=load_dialogues,
