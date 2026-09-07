@@ -17,6 +17,10 @@ from comic_translator.models.bubble import Bubble, DialogueBlock
 
 IMAGE_EXTS = (".png", ".jpg", ".jpeg", ".webp", ".bmp")
 
+import re as _re_mod
+
+_RE_NONWS = _re_mod.compile(r"\s+")
+
 
 def find_source_image(runs_root_service, run_id: str, snapshot: PageSnapshot) -> Path | None:
     """按 run 记录的 input_dir → 常见目录 的顺序定位源图"""
@@ -126,6 +130,49 @@ def snapshot_to_dialogues(
             render_status="pending",
             font_size=font_size,
         ))
+
+    # ---- 重建 OCR 原文块并归属到对白 ----
+    # 擦除蒙版（ocr_mask provider）依赖 db.ocr_blocks 的 bbox 定位原文区域；
+    # 不挂载则蒙版为空 → 原文不会被擦除，译文直接叠在英文上。
+    def _norm(t: str) -> str:
+        return _RE_NONWS.sub("", (t or "").lower())
+
+    page_ocr_blocks = []
+    for ob in snapshot.ocr_blocks or []:
+        try:
+            from comic_translator.models.ocr_block import OCRBlock
+            page_ocr_blocks.append(OCRBlock(
+                id=str(ob.get("id", "")),
+                page=int(ob.get("page", 0) or 0),
+                bbox=tuple(float(v) for v in ob.get("bbox", (0, 0, 0, 0))),
+                text=str(ob.get("text", "")),
+                confidence=float(ob.get("confidence", 1.0) or 1.0),
+            ))
+        except Exception:
+            continue
+
+    if blocks and page_ocr_blocks:
+        assigned: dict[int, list] = {}
+        leftovers = []
+        for ob in page_ocr_blocks:
+            key = _norm(ob.text)
+            hit = None
+            if key:
+                for idx, blk in enumerate(blocks):
+                    if key and key in _norm(blk.merged_text):
+                        hit = idx
+                        break
+            if hit is None:
+                leftovers.append(ob)
+            else:
+                assigned.setdefault(hit, []).append(ob)
+        # 未匹配的原文块挂到最长的对白，保证擦除覆盖不漏
+        if leftovers:
+            longest = max(range(len(blocks)), key=lambda i: len(blocks[i].merged_text))
+            assigned.setdefault(longest, []).extend(leftovers)
+        for idx, obs in assigned.items():
+            blocks[idx].ocr_blocks = obs
+
     return blocks
 
 
