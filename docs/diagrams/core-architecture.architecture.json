@@ -2,7 +2,7 @@
   "schema_version": 1,
   "diagram_type": "architecture",
   "meta": {
-    "title": "comic-translator 核心管线架构（CLI + GUI 共用）",
+    "title": "MangaFlow comic-translator 核心架构（v0.2.0）",
     "locale": "zh-CN",
     "quality_profile": "showcase"
   },
@@ -25,7 +25,7 @@
       "id": "gui",
       "type": "frontend",
       "label": "Gradio GUI MangaFlow",
-      "sublabel": "14 个工作区页面",
+      "sublabel": "15 个工作区 · 含精修工坊",
       "pos": [
         500,
         90
@@ -39,7 +39,7 @@
       "id": "pipeline",
       "type": "backend",
       "label": "ComicPipelineService",
-      "sublabel": "comic_translator.core 共用管线",
+      "sublabel": "core 共用管线 · 质检闭环 + 角色一致性",
       "pos": [
         495,
         220
@@ -287,7 +287,8 @@
       "title": "单一核心管线",
       "items": [
         "CLI 与 GUI 消费同一个 run_pipeline 生成器",
-        "页码范围保留全列表编号，resume 与全量输出一致"
+        "页码范围保留全列表编号，resume 与全量输出一致",
+        "精修工坊：画布点选气泡改译文/字号/位置，单页重渲染"
       ]
     },
     {
@@ -302,6 +303,7 @@
       "dot": "rose",
       "title": "数据与上下文",
       "items": [
+        "角色一致性：说话人归属自动积累角色记忆并注入上下文",
         "SQLite 按项目隔离术语表/TM/角色",
         "LLM 后端经 DI 容器切换 Ollama 或 API"
       ]

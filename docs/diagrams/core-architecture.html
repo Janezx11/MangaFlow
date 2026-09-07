@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="generator" content="archify 2.17.0-dev.1">
-  <title>comic-translator 核心管线架构（CLI + GUI 共用）</title>
+  <title>MangaFlow comic-translator 核心架构（v0.2.0）</title>
   <script>
     // Resolve the theme before first paint so light-preference users don't
     // see a dark flash. The toolbar script below re-applies with UI state.
@@ -4955,7 +4955,7 @@
            data-preset-badge-blueprint="蓝图 / 修订 01"
            data-preset-badge-editorial="编辑风格 / 现场笔记">
         <div class="pulse-dot"></div>
-        <h1>comic-translator 核心管线架构（CLI + GUI 共用）</h1>
+        <h1>MangaFlow comic-translator 核心架构（v0.2.0）</h1>
       </div>
     </div>
 
@@ -5005,7 +5005,7 @@
     <div class="diagram-container" data-detail-level="read"
          data-preset-badge-editorial-plate="ARCHIFY / 图版 04">
       <svg viewBox="0 0 1160 662" role="img" lang="zh-CN" aria-labelledby="archify-diagram-title archify-diagram-description" data-preset="classic" data-quality-profile="showcase">
-        <title id="archify-diagram-title">comic-translator 核心管线架构（CLI + GUI 共用）</title>
+        <title id="archify-diagram-title">MangaFlow comic-translator 核心架构（v0.2.0）</title>
         <desc id="archify-diagram-description">由 Archify 生成的架构图。</desc>
         <!-- Definitions -->
         <defs>
@@ -5061,8 +5061,8 @@
         <text data-detail="context" x="350" y="136" class="t-muted" font-size="8.7" text-anchor="middle">comic-translator run / resume</text>
         </g>
 
-        <g id="node-gui" data-node-id="gui" data-node-label="Gradio GUI MangaFlow" tabindex="0" role="button" aria-label="聚焦Gradio GUI MangaFlow，14 个工作区页面, 架构组件" aria-pressed="false" data-node-kind="frontend" data-node-sublabel="14 个工作区页面" data-node-context="架构组件">
-          <title>Gradio GUI MangaFlow · 14 个工作区页面 · 架构组件</title>
+        <g id="node-gui" data-node-id="gui" data-node-label="Gradio GUI MangaFlow" tabindex="0" role="button" aria-label="聚焦Gradio GUI MangaFlow，15 个工作区 · 含精修工坊, 架构组件" aria-pressed="false" data-node-kind="frontend" data-node-sublabel="15 个工作区 · 含精修工坊" data-node-context="架构组件">
+          <title>Gradio GUI MangaFlow · 15 个工作区 · 含精修工坊 · 架构组件</title>
           <rect x="500" y="90" width="170" height="64" rx="6" class="c-mask"/>
           <rect x="500" y="90" width="170" height="64" rx="6" class="c-frontend" stroke-width="1.5"/>
           <g aria-hidden="true" data-semantic-sigil="frontend" class="semantic-sigil s-frontend" transform="translate(506 96) scale(0.6875)">
@@ -5072,18 +5072,18 @@
             <circle cx="6.3" cy="4.8" r=".7" class="sigil-fill"/>
           </g>
           <text data-node-label="" data-detail-anchor="" x="585" y="120" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">Gradio GUI MangaFlow</text>
-        <text data-detail="context" x="585" y="136" class="t-muted" font-size="9" text-anchor="middle">14 个工作区页面</text>
+        <text data-detail="context" x="585" y="136" class="t-muted" font-size="9" text-anchor="middle">15 个工作区 · 含精修工坊</text>
         </g>
 
-        <g id="node-pipeline" data-node-id="pipeline" data-node-label="ComicPipelineService" tabindex="0" role="button" aria-label="聚焦ComicPipelineService，comic_translator.core 共用管线, 架构组件" aria-pressed="false" data-node-kind="backend" data-node-sublabel="comic_translator.core 共用管线" data-node-tag="core/" data-node-context="架构组件">
-          <title>ComicPipelineService · comic_translator.core 共用管线 · 架构组件 · core/</title>
+        <g id="node-pipeline" data-node-id="pipeline" data-node-label="ComicPipelineService" tabindex="0" role="button" aria-label="聚焦ComicPipelineService，core 共用管线 · 质检闭环 + 角色一致性, 架构组件" aria-pressed="false" data-node-kind="backend" data-node-sublabel="core 共用管线 · 质检闭环 + 角色一致性" data-node-tag="core/" data-node-context="架构组件">
+          <title>ComicPipelineService · core 共用管线 · 质检闭环 + 角色一致性 · 架构组件 · core/</title>
           <rect x="495" y="220" width="180" height="68" rx="6" class="c-mask"/>
           <rect x="495" y="220" width="180" height="68" rx="6" class="c-backend" stroke-width="1.5"/>
           <g aria-hidden="true" data-semantic-sigil="backend" class="semantic-sigil s-backend" transform="translate(501 226) scale(0.6875)">
             <path d="M6 3 3 8l3 5M10 3l3 5-3 5"/>
           </g>
           <text data-node-label="" data-detail-anchor="" x="585" y="252" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">ComicPipelineService</text>
-        <text data-detail="context" x="585" y="268" class="t-muted" font-size="9" text-anchor="middle">comic_translator.core 共用管线</text>
+        <text data-detail="context" x="585" y="268" class="t-muted" font-size="7.7" text-anchor="middle">core 共用管线 · 质检闭环 + 角色一致性</text>
         <text data-detail="fine" x="585" y="280" class="t-backend" font-size="7" text-anchor="middle">core/</text>
         </g>
 
@@ -5460,6 +5460,7 @@
         <ul>
           <li>&bull; CLI 与 GUI 消费同一个 run_pipeline 生成器</li>
           <li>&bull; 页码范围保留全列表编号，resume 与全量输出一致</li>
+          <li>&bull; 精修工坊：画布点选气泡改译文/字号/位置，单页重渲染</li>
         </ul>
       </div>
 
@@ -5480,6 +5481,7 @@
           <h3>数据与上下文</h3>
         </div>
         <ul>
+          <li>&bull; 角色一致性：说话人归属自动积累角色记忆并注入上下文</li>
           <li>&bull; SQLite 按项目隔离术语表/TM/角色</li>
           <li>&bull; LLM 后端经 DI 容器切换 Ollama 或 API</li>
         </ul>

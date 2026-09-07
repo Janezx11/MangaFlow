@@ -6,7 +6,14 @@
 ![Python](https://img.shields.io/badge/python-3.10%2B-blue)
 ![Platform](https://img.shields.io/badge/platform-Windows-lightgrey)
 
-自动化的漫画/漫画图片翻译系统：给定一组漫画图片，自动完成 **文字检测 → OCR 识别 → LLM 翻译 → 原文抹除 → 译文回填渲染** 的全流程，输出翻译后的图片。
+**MangaFlow** 是一个面向真实汉化工作流的漫画翻译系统：给定一组漫画图片，自动完成 **文字检测 → 气泡归属 → OCR 识别 → LLM 翻译 → 原文擦除 → 译文回填渲染** 的全流程，输出翻译后的图片——并且不止于此：
+
+- **质检闭环**：每页渲染后自动聚合质检，翻译失败的页由 LLM 逐气泡重试并重渲染，产出重试前后合格率对比
+- **角色一致性**：说话人归属自动积累角色记忆（名字/别名/语气），注入后续页翻译上下文，连载翻译不再"第三话换人设"
+- **精修工坊**：机翻打底、人工在画布上点选气泡微调 译文/字号/位置，单页秒级重渲染
+- **自训模型闭环**：标注 → 数据集 → 训练 → 模型库 → 一键启用，社区罕见的完整 ML 工作台
+
+CLI 与 Web GUI 共用同一条核心管线（`comic_translator.core`），`comic-translator doctor` 一条命令完成冷启动体检。
 
 > **English**: An automated **manga / comic translation pipeline** - detect text regions, OCR, LLM translate, erase original, render translated text back onto the image. Web GUI (Gradio) + CLI. Currently supports **English to Chinese** comic translation with translation memory, character consistency, and batch/resume support.
 
