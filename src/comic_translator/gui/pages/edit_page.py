@@ -93,7 +93,7 @@ def create_edit_page(pipeline_service, history_service):
         canvas_img = edit_service.draw_selection_overlay(img_path, snapshot, typo_all)
         return rows, canvas_img, f"共 {len(rows)} 个对白块 —— 可点画布选中气泡，或直接编辑表格"
 
-    def apply_and_rerender(run_id, page, table):
+    def apply_and_rerender(run_id, page, table, sel_id_val, sel_text_val, sel_font, sel_dx, sel_dy):
         if history_service is None or not run_id:
             return "请先选择运行", None
         # Dataframe preprocess: pandas DataFrame（列 = 表头）→ 逐行取值
@@ -110,6 +110,14 @@ def create_edit_page(pipeline_service, history_service):
             return "对白表为空，请先加载对白", None
 
         edits: dict[str, dict] = {}
+        # 表单里的选中块直接并入（表单优先，免去"先写入表格行"一步）
+        if (sel_id_val or "").strip():
+            edits[sel_id_val.strip()] = {
+                "text": (sel_text_val or "").strip(),
+                "font_size": int(sel_font or 0),
+                "dx": int(sel_dx or 0),
+                "dy": int(sel_dy or 0),
+            }
         for row in rows:
             if len(row) < 3:
                 continue
@@ -220,6 +228,6 @@ def create_edit_page(pipeline_service, history_service):
     )
     rerender_btn.click(
         fn=apply_and_rerender,
-        inputs=[run_dropdown, page_num, dlg_table],
+        inputs=[run_dropdown, page_num, dlg_table, sel_id, sel_text, sel_font, sel_dx, sel_dy],
         outputs=[status_md, preview],
     )
