@@ -95,9 +95,8 @@ def create_edit_page(pipeline_service, history_service):
     def apply_and_rerender(run_id, page, table):
         if history_service is None or not run_id:
             return "请先选择运行", None
-        if not table:
-            return "对白表为空，请先加载对白", None
         # Dataframe preprocess: pandas DataFrame（列 = 表头）→ 逐行取值
+        # 注意：DataFrame 不能用布尔判断（ambiguous truth value），先转行列表再判空
         try:
             import pandas as pd
             if isinstance(table, pd.DataFrame):
@@ -106,6 +105,8 @@ def create_edit_page(pipeline_service, history_service):
                 rows = [list(r) for r in table]
         except Exception:
             rows = [list(r) for r in table]
+        if not rows:
+            return "对白表为空，请先加载对白", None
 
         edits: dict[str, dict] = {}
         for row in rows:
